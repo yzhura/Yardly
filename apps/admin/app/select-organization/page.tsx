@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { selectOrganization } from "@/app/actions/org";
+import { FormError } from "@/components/form-message";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,6 +24,12 @@ export default async function SelectOrganizationPage({ searchParams }: Props) {
   }
 
   const forbidden = params?.error === "forbidden";
+  const count = me.memberships.length;
+
+  const description =
+    count > 1
+      ? "Ви підключені до кількох організацій. Оберіть, з якою працювати зараз."
+      : "Оберіть організацію, щоб увійти в панель, або створіть нову.";
 
   return (
     <main className="min-h-screen bg-background px-4 py-12">
@@ -30,16 +37,11 @@ export default async function SelectOrganizationPage({ searchParams }: Props) {
         <Card>
           <CardHeader>
             <CardTitle>Оберіть організацію</CardTitle>
-            <CardDescription>
-              Ви берете участь у кількох організаціях. Оберіть, з якою
-              працювати зараз.
-            </CardDescription>
+            <CardDescription>{description}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {forbidden ? (
-              <p className="text-sm text-destructive" role="alert">
-                Немає доступу до цієї організації.
-              </p>
+              <FormError>Немає доступу до цієї організації.</FormError>
             ) : null}
             {me.memberships.map((m) => (
               <form

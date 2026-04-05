@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signOut } from "@/app/actions/auth";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { InlineCode } from "@/components/ui/inline-code";
 import { getApiBaseUrl } from "@/lib/api-url";
 import { createClient } from "@/lib/supabase/server";
 
@@ -35,16 +37,20 @@ export default async function BackendUnavailablePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <p className="text-sm text-muted-foreground">
-            Перевірте: Nest запущено, у <code className="rounded bg-muted px-1">apps/admin/.env</code>{" "}
-            вказано{" "}
-            <code className="rounded bg-muted px-1">NEXT_PUBLIC_API_URL</code> (зараз очікується{" "}
-            <span className="font-mono text-foreground">{apiUrl}</span>
-            ), у <code className="rounded bg-muted px-1">apps/api/.env</code> —{" "}
-            <code className="rounded bg-muted px-1">SUPABASE_URL</code> та{" "}
-            <code className="rounded bg-muted px-1">SUPABASE_ANON_KEY</code> того ж проєкту, що й у
-            адмінці.
-          </p>
+          <Alert>
+            <AlertTitle>Що перевірити</AlertTitle>
+            <AlertDescription className="space-y-2 text-muted-foreground">
+              <p>
+                Переконайтеся, що Nest запущено, у{" "}
+                <InlineCode>apps/admin/.env</InlineCode> задано{" "}
+                <InlineCode>NEXT_PUBLIC_API_URL</InlineCode> (зараз очікується{" "}
+                <span className="font-mono text-foreground">{apiUrl}</span>
+                ), а в <InlineCode>apps/api/.env</InlineCode> —{" "}
+                <InlineCode>SUPABASE_URL</InlineCode> та{" "}
+                <InlineCode>SUPABASE_ANON_KEY</InlineCode> того ж проєкту Supabase, що й у адмінці.
+              </p>
+            </AlertDescription>
+          </Alert>
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="default">
               <Link href="/">Спробувати знову</Link>

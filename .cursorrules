@@ -1,4 +1,4 @@
-# Yardly: Core Development Rules (v1.1)
+# Yardly: Core Development Rules (v1.3)
 
 ## Code Quality & Ownership
 - **Engineering standards:** DRY, SOLID, clean code. Prefer small modules, clear boundaries, and explicit naming. Write as a senior engineer would: predictable structure, minimal coupling, no clever one-offs.
@@ -11,12 +11,22 @@
 
 ## Tech Stack (DO NOT DEVIATE)
 - **Monorepo Structure:**
-  - `/apps/admin`: Next.js 15 (App Router), Tailwind CSS, Shadcn UI.
+  - `/apps/admin`: Next.js 15 (App Router), Tailwind CSS, **Shadcn UI** (`components/ui/*` — prefer these primitives over ad-hoc markup; add missing ones with the Shadcn CLI). **Axios** for **client-side** HTTP to the Nest API; **TanStack Query** custom hooks (`apps/admin/hooks/*`) should use a shared Axios instance (base URL, auth headers, error normalization), not scattered `fetch`. Server Actions and other **server-only** callers may use `fetch` or the same patterns as today — do not import browser Axios helpers into Server Components.
   - `/apps/api`: NestJS (modular architecture).
   - `/packages/database`: Prisma ORM + Supabase (PostgreSQL).
-- **Auth:** Supabase Auth (Magic Links only). Nest validates JWTs with **anon** key (`SUPABASE_ANON_KEY`), never `service_role` in the admin bundle.
+- **Auth:** Supabase Auth (Magic Links only). Nest validates JWTs with **anon** key (`SUPABASE_ANON_KEY`), never `service_role` in the admin bundle. Employee invites use `SUPABASE_SERVICE_ROLE_KEY` **only** in `apps/api` (never in the browser bundle).
 - **Icons:** Lucide React.
 - **State Management:** TanStack Query (React Query), zustand.
+- **Forms (admin UI):** **React Hook Form** + **Yup** (`@hookform/resolvers/yup`) for interactive forms; reuse Shadcn `components/ui/form.tsx` + field components. Validation messages and repeated copy live under `apps/admin/constants/` (context-named files).
+
+## Coding Principles
+1. **No hardcoding:** Use configuration, env, or database-driven settings for statuses, categories, and business constants — not scattered magic strings in UI or services (align with domain enums / Prisma models when they exist).
+2. **Type safety:** Use TypeScript strictly (`strict` where the project allows). Share contracts between admin and API via explicit DTOs on the backend and matching types or generated shapes on the frontend; prefer a small shared package or well-defined API response types over duplicating fragile literals.
+3. **Modular NestJS:** Follow **Module → Service → Controller**. Put business logic in **Services**; Controllers stay thin (validation, auth guards, mapping to HTTP).
+4. **Don’t break, extend:** Before changing shared behavior, trace callers and tenant/auth impact; extend with new methods or optional fields rather than silent breaking changes unless coordinated.
+5. **Clean UI (Shadcn):** Build admin UI from **Shadcn UI** components in `apps/admin/components/ui/`. Keep screens composable and small; do **not** default to raw `<select>`, unstyled inputs, or one-off class soup when a Shadcn primitive exists or can be added (e.g. run `npx shadcn@latest add select`). Prefer **RHF + Yup** for client forms; for legacy Server Actions that still use `FormData`, use Shadcn `Select` with a hidden `<input name="…" />` mirroring the value, or a small client subcomponent — don’t fall back to unstyled native controls for convenience.
+6. **Client API layer:** Add a single **Axios instance** (e.g. `apps/admin/lib/api/client.ts`) wired to `NEXT_PUBLIC_API_URL`, with interceptors for `Authorization: Bearer <access_token>` when calling Nest from the browser. Custom hooks wrap mutations/queries around that instance. Never send `service_role` or other secrets from the admin bundle.
+7. **Database:** Prisma is the ORM; **always ship schema changes as Prisma migrations** in normal dev (see **Tooling** — use `db:migrate`, not `db:push`, unless explicitly troubleshooting).
 
 ## Admin App — Auth & Session (conventions)
 - **Server helpers** (`apps/admin/lib/`):
@@ -40,7 +50,8 @@
 - **CORS:** `ADMIN_ORIGIN` must include the admin dev origin (e.g. `http://localhost:3000`).
 
 ## Tooling
-- **Prisma on Windows:** `prisma generate` can fail with `EPERM` renaming `query_engine-windows.dll.node` if another process locks it (dev server, IDE, AV). Stop consumers of Prisma or temporarily remove `"prepare": "prisma generate"` from `packages/database` and run `npm run db:generate` from the repo root manually after schema changes.
+- **Database schema:** Use **`npm run db:migrate`** from the repo root for local dev (Prisma Migrate). Use **`npm run db:migrate:deploy`** in CI/production. Prefer a **direct** `DATABASE_URL` (port 5432) in `packages/database/.env` for migrations; pooler URLs can break `migrate dev`.
+- **Prisma on Windows:** `prisma generate` can fail with `EPERM` renaming `query_engine-windows.dll.node` if another process locks it (dev server, IDE, AV). Stop Node/dev servers, then run **`npm run db:generate:clean`** from the repo root (deletes `node_modules/.prisma` and regenerates). As a last resort, temporarily remove `"prepare": "prisma generate"` from `packages/database` if `npm install` keeps failing.
 
 ## Formatting & Language
 - **UI:** All labels and user-facing text MUST be in Ukrainian (Українська мова).

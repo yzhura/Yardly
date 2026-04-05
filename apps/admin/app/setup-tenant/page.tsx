@@ -8,6 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { FormError } from "@/components/form-message";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { requireAuthMe } from "@/lib/auth-server";
@@ -30,12 +32,14 @@ export default async function SetupTenantPage({ searchParams }: Props) {
     <main className="min-h-screen bg-background px-4 py-12">
       <div className="mx-auto flex max-w-md flex-col gap-6">
         {me.memberships.length > 0 ? (
-          <p className="text-center text-sm text-muted-foreground">
-            У вас уже є організації.{" "}
-            <Link href="/select-organization" className="text-primary underline">
-              Обрати зі списку
-            </Link>
-          </p>
+          <Alert variant="success" className="text-center">
+            <AlertDescription className="flex flex-wrap items-center justify-center gap-x-1">
+              <span>У вас уже є організації.</span>
+              <Button variant="link" className="h-auto p-0" asChild>
+                <Link href="/select-organization">Обрати зі списку</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
         ) : null}
         <Card>
           <CardHeader>
@@ -57,11 +61,7 @@ export default async function SetupTenantPage({ searchParams }: Props) {
                   placeholder="Наприклад, Yardly Studio"
                 />
               </div>
-              {errorMessage ? (
-                <p className="text-sm text-destructive" role="alert">
-                  {errorMessage}
-                </p>
-              ) : null}
+              {errorMessage ? <FormError>{errorMessage}</FormError> : null}
               <Button type="submit">Створити організацію</Button>
             </form>
           </CardContent>

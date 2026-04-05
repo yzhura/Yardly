@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { FormError, FormSuccess } from "@/components/form-message";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -66,15 +67,9 @@ export function LoginForm() {
               placeholder="you@company.com"
             />
           </div>
-          {error ? (
-            <p className="text-sm text-destructive" role="alert">
-              {error}
-            </p>
-          ) : null}
+          {error ? <FormError>{error}</FormError> : null}
           {message ? (
-            <p className="text-sm text-muted-foreground" role="status">
-              {message}
-            </p>
+            <FormSuccess>{message}</FormSuccess>
           ) : null}
           <Button type="submit" disabled={pending}>
             {pending ? "Надсилаємо…" : "Надіслати посилання"}
