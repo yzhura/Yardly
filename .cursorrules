@@ -1,5 +1,9 @@
 # Yardly: Core Development Rules (v1.0)
 
+## Code Quality & Ownership
+- **Engineering standards:** DRY, SOLID, clean code. Prefer small modules, clear boundaries, and explicit naming. Write as a senior engineer would: predictable structure, minimal coupling, no clever one-offs.
+- **Founder focus:** The founder is primarily a frontend (React) specialist. **Backend (NestJS), database (Prisma/PostgreSQL/Supabase), auth, and security are owned by the AI / platform side** — implement them to production-minded defaults, explain non-obvious choices briefly in PRs or comments when useful, and avoid leaving security or tenancy as “TODO” without an explicit follow-up.
+
 ## Project Context
 - **Name:** Yardly (SaaS ERP for Garment Brands)
 - **Founder:** Yaroslav Zhuravlov

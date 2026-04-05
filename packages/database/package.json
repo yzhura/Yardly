@@ -1,0 +1,22 @@
+{
+  "name": "@yardly/database",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "prisma generate && tsc",
+    "generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "prepare": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.5.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.5.0",
+    "typescript": "^5.7.3"
+  }
+}
