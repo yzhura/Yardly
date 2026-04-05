@@ -10,33 +10,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { fetchAuthMe } from "@/lib/auth-server";
+import { YardlyLogo } from "@/components/yardly-logo";
+import { ACTIVE_TENANT_COOKIE } from "@/lib/active-tenant-cookie";
+import { requireAuthMe } from "@/lib/auth-server";
 import { organizationRoleLabel } from "@/lib/organization-roles";
-import { createClient } from "@/lib/supabase/server";
 import { Package } from "lucide-react";
 
 export default async function HomePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const me = await fetchAuthMe();
-  if (!me) {
-    // Avoid / ↔ /login loop when Supabase session exists but Nest /auth/me fails (API down, env, 401).
-    redirect("/auth/backend-unavailable");
-  }
+  const me = await requireAuthMe();
 
   if (me.memberships.length === 0) {
     redirect("/setup-tenant");
   }
 
   const cookieStore = await cookies();
-  const activeTenantId = cookieStore.get("yardly_tenant_id")?.value ?? null;
+  const activeTenantId = cookieStore.get(ACTIVE_TENANT_COOKIE)?.value ?? null;
   const activeMembership = activeTenantId
     ? me.memberships.find((m) => m.tenant.id === activeTenantId)
     : undefined;
@@ -52,7 +40,7 @@ export default async function HomePage() {
           <div className="flex items-center gap-3 text-foreground">
             <Package className="h-10 w-10 text-muted-foreground" aria-hidden />
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">Yardly</h1>
+              <YardlyLogo />
               <p className="text-sm text-muted-foreground">
                 {activeMembership.tenant.name} ·{" "}
                 {organizationRoleLabel(activeMembership.role)}

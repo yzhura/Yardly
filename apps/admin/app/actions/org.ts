@@ -1,27 +1,23 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { setActiveTenantCookie } from "@/lib/active-tenant-cookie";
 import { getApiBaseUrl } from "@/lib/api-url";
-import { createClient } from "@/lib/supabase/server";
+import { getServerAccessToken } from "@/lib/auth-server";
 
 export async function selectOrganization(tenantId: string) {
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session?.access_token) {
+  const accessToken = await getServerAccessToken();
+  if (!accessToken) {
     redirect("/login");
   }
 
   const res = await fetch(`${getApiBaseUrl()}/auth/me`, {
-    headers: { Authorization: `Bearer ${session.access_token}` },
+    headers: { Authorization: `Bearer ${accessToken}` },
     cache: "no-store",
   });
 
   if (!res.ok) {
-    redirect("/login");
+    redirect("/auth/backend-unavailable");
   }
 
   const { memberships } = (await res.json()) as {
@@ -32,15 +28,7 @@ export async function selectOrganization(tenantId: string) {
     redirect("/select-organization?error=forbidden");
   }
 
-  const store = await cookies();
-  store.set("yardly_tenant_id", tenantId, {
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-  });
-
+  await setActiveTenantCookie(tenantId);
   redirect("/");
 }
 
@@ -51,12 +39,8 @@ export async function setupOrganization(formData: FormData) {
     redirect("/setup-tenant?error=empty");
   }
 
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session?.access_token) {
+  const accessToken = await getServerAccessToken();
+  if (!accessToken) {
     redirect("/login");
   }
 
@@ -64,7 +48,7 @@ export async function setupOrganization(formData: FormData) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
+      Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({ name }),
   });
@@ -75,14 +59,6 @@ export async function setupOrganization(formData: FormData) {
 
   const data = (await res.json()) as { tenant: { id: string } };
 
-  const store = await cookies();
-  store.set("yardly_tenant_id", data.tenant.id, {
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-    sameSite: "lax",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-  });
-
+  await setActiveTenantCookie(data.tenant.id);
   redirect("/");
 }

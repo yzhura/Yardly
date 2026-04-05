@@ -9,27 +9,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { fetchAuthMe } from "@/lib/auth-server";
+import { requireAuthMe } from "@/lib/auth-server";
 import { organizationRoleLabel } from "@/lib/organization-roles";
-import { createClient } from "@/lib/supabase/server";
 
 type Props = { searchParams?: Promise<{ error?: string }> };
 
 export default async function SelectOrganizationPage({ searchParams }: Props) {
   const params = await searchParams;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const me = await fetchAuthMe();
-  if (!me) {
-    redirect("/auth/backend-unavailable");
-  }
+  const me = await requireAuthMe();
 
   if (me.memberships.length === 0) {
     redirect("/setup-tenant");

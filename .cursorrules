@@ -1,4 +1,4 @@
-# Yardly: Core Development Rules (v1.0)
+# Yardly: Core Development Rules (v1.1)
 
 ## Code Quality & Ownership
 - **Engineering standards:** DRY, SOLID, clean code. Prefer small modules, clear boundaries, and explicit naming. Write as a senior engineer would: predictable structure, minimal coupling, no clever one-offs.
@@ -10,21 +10,37 @@
 - **Main Goal:** Track fabric inventory, manage production (tailors), and automate order shipping (Nova Poshta).
 
 ## Tech Stack (DO NOT DEVIATE)
-- **Monorepo Structure:** - `/apps/admin`: Next.js 15 (App Router), Tailwind CSS, Shadcn UI.
-  - `/apps/api`: NestJS (Modular architecture).
+- **Monorepo Structure:**
+  - `/apps/admin`: Next.js 15 (App Router), Tailwind CSS, Shadcn UI.
+  - `/apps/api`: NestJS (modular architecture).
   - `/packages/database`: Prisma ORM + Supabase (PostgreSQL).
-- **Auth:** Supabase Auth (Magic Links only).
+- **Auth:** Supabase Auth (Magic Links only). Nest validates JWTs with **anon** key (`SUPABASE_ANON_KEY`), never `service_role` in the admin bundle.
 - **Icons:** Lucide React.
 - **State Management:** TanStack Query (React Query), zustand.
 
-## Multi-tenancy & Security
-- **Strict Isolation:** Every table (except `Tenant`) MUST have a `tenantId: String` field.
-- **Filtering:** All backend queries MUST include a `.where({ tenantId })` filter.
-- **FOP Profiles:** Only one `IntegrationProfile` can have `isActive: true` per Tenant.
+## Admin App — Auth & Session (conventions)
+- **Server helpers** (`apps/admin/lib/`):
+  - `requireAuthMe()` — loads profile + memberships via Nest or redirects to `/login` / `/auth/backend-unavailable`.
+  - `getServerAccessToken()` — Bearer token for Server Actions calling the API (same getUser → getSession order as `fetchAuthMe`).
+  - `ACTIVE_TENANT_COOKIE` + `setActiveTenantCookie` / `clearActiveTenantCookie` — active organization id (httpOnly); do not hardcode the cookie name elsewhere.
+- **Ukrainian** copy on all user-facing pages (errors, buttons, descriptions).
 
-## Business Logic Constants
+## Multi-tenancy & Security
+- **Identity vs org:** `User` is global (linked to Supabase `auth_user_id`). `Membership` ties `userId` + `tenantId` + role. **Do not put a single `tenantId` on `User`.**
+- **Business data:** Every **domain** table (orders, inventory, integrations, etc.) **MUST** include `tenantId` and Nest/Prisma queries **MUST** filter by the active tenant once those models exist.
+- **Filtering:** All backend queries for tenant-scoped data MUST include a `.where({ tenantId })` (or equivalent) for the **current** organization from the request context.
+- **FOP Profiles (target):** Only one `IntegrationProfile` may have `isActive: true` per tenant — enforce when the model exists.
+
+## Business Logic Constants (target domain — apply when models exist)
 - **Order Statuses:** NEW, PENDING_ASSIGNMENT, IN_PRODUCTION, READY_TO_SHIP, SHIPPED, COMPLETED, RETURNED, CANCELLED.
-- **Inventory:** `Material.quantityReserved` increases on Order creation, `quantityTotal` decreases only on actual shipment/usage.
+- **Inventory:** `Material.quantityReserved` increases on Order creation; `quantityTotal` decreases only on actual shipment/usage.
+
+## API / Monorepo gotchas
+- **`AppModule`:** `ConfigModule.forRoot(... ) as any` works around duplicate `@nestjs/*` install paths under npm workspaces breaking `Promise<DynamicModule>` typing. Do not remove the cast unless the dependency tree is deduped (single `@nestjs/common` for compile + runtime).
+- **CORS:** `ADMIN_ORIGIN` must include the admin dev origin (e.g. `http://localhost:3000`).
+
+## Tooling
+- **Prisma on Windows:** `prisma generate` can fail with `EPERM` renaming `query_engine-windows.dll.node` if another process locks it (dev server, IDE, AV). Stop consumers of Prisma or temporarily remove `"prepare": "prisma generate"` from `packages/database` and run `npm run db:generate` from the repo root manually after schema changes.
 
 ## Formatting & Language
 - **UI:** All labels and user-facing text MUST be in Ukrainian (Українська мова).

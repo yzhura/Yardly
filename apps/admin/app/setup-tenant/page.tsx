@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { setupOrganization } from "@/app/actions/org";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,26 +10,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { fetchAuthMe } from "@/lib/auth-server";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuthMe } from "@/lib/auth-server";
 
 type Props = { searchParams?: Promise<{ error?: string }> };
 
 export default async function SetupTenantPage({ searchParams }: Props) {
   const params = await searchParams;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const me = await fetchAuthMe();
-  if (!me) {
-    redirect("/auth/backend-unavailable");
-  }
+  const me = await requireAuthMe();
 
   const errorKey = params?.error;
   const errorMessage =
