@@ -1,0 +1,28 @@
+# Yardly: Core Development Rules (v1.0)
+
+## Project Context
+- **Name:** Yardly (SaaS ERP for Garment Brands)
+- **Founder:** Yaroslav Zhuravlov
+- **Main Goal:** Track fabric inventory, manage production (tailors), and automate order shipping (Nova Poshta).
+
+## Tech Stack (DO NOT DEVIATE)
+- **Monorepo Structure:** - `/apps/admin`: Next.js 15 (App Router), Tailwind CSS, Shadcn UI.
+  - `/apps/api`: NestJS (Modular architecture).
+  - `/packages/database`: Prisma ORM + Supabase (PostgreSQL).
+- **Auth:** Supabase Auth (Magic Links only).
+- **Icons:** Lucide React.
+- **State Management:** TanStack Query (React Query), zustand.
+
+## Multi-tenancy & Security
+- **Strict Isolation:** Every table (except `Tenant`) MUST have a `tenantId: String` field.
+- **Filtering:** All backend queries MUST include a `.where({ tenantId })` filter.
+- **FOP Profiles:** Only one `IntegrationProfile` can have `isActive: true` per Tenant.
+
+## Business Logic Constants
+- **Order Statuses:** NEW, PENDING_ASSIGNMENT, IN_PRODUCTION, READY_TO_SHIP, SHIPPED, COMPLETED, RETURNED, CANCELLED.
+- **Inventory:** `Material.quantityReserved` increases on Order creation, `quantityTotal` decreases only on actual shipment/usage.
+
+## Formatting & Language
+- **UI:** All labels and user-facing text MUST be in Ukrainian (Українська мова).
+- **Code:** Variables, comments, and documentation MUST be in English.
+- **Styles:** Clean, professional, minimalist white/slate theme.
