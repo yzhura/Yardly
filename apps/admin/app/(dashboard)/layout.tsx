@@ -19,7 +19,7 @@ export default async function DashboardLayout({
           userEmail={me.user.email}
         />
         <main className="flex-1 overflow-auto">
-          <div className="mx-auto w-full max-w-7xl px-6 py-10 sm:px-8 lg:px-10">
+          <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
             <DashboardMotion>{children}</DashboardMotion>
           </div>
         </main>

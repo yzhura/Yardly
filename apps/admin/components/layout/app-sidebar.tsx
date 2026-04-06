@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import { LogOut, Package } from "lucide-react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { signOut } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { APPLE_SPRING, listItemReveal, MOTION_DURATION, MOTION_EASE } from "@/lib/motion";
@@ -22,7 +23,7 @@ export function AppSidebar() {
 
   return (
     <motion.aside
-      className="flex w-[260px] shrink-0 flex-col border-r border-border bg-card/95 backdrop-blur"
+      className="hidden w-[260px] shrink-0 flex-col border-r border-border bg-card/95 backdrop-blur md:flex"
       initial={{ opacity: 0, x: -12 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{
@@ -103,5 +104,140 @@ export function AppSidebar() {
         </form>
       </div>
     </motion.aside>
+  );
+}
+
+type MobileNavDrawerProps = {
+  open: boolean;
+  onClose: () => void;
+  tenantName: string;
+};
+
+export function MobileNavDrawer({
+  open,
+  onClose,
+  tenantName,
+}: MobileNavDrawerProps) {
+  const pathname = usePathname();
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, onClose]);
+
+  return (
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          className="fixed inset-0 z-50 md:hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE }}
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            aria-label="Закрити меню"
+            onClick={onClose}
+          />
+          <motion.aside
+            className="relative flex h-full w-[86vw] max-w-[320px] flex-col border-r border-border bg-background shadow-xl"
+            initial={{ x: -24, opacity: 0.98 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -24, opacity: 0.98 }}
+            transition={{
+              ...APPLE_SPRING,
+              opacity: { duration: MOTION_DURATION.normal, ease: MOTION_EASE },
+            }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Навігація"
+          >
+            <div className="border-b border-border px-4 py-4">
+              <Link
+                href="/"
+                className="flex items-center gap-3"
+                onClick={onClose}
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                  <Package className="h-5 w-5" aria-hidden />
+                </span>
+                <span className="min-w-0 text-left">
+                  <span className="block text-lg font-extrabold leading-tight tracking-tight text-foreground">
+                    Yard<span className="text-primary">ly</span>
+                  </span>
+                  <span className="block truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    ERP для швейних брендів
+                  </span>
+                </span>
+              </Link>
+              <p className="mt-3 truncate text-xs text-muted-foreground">{tenantName}</p>
+            </div>
+
+            <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
+              {DASHBOARD_NAV_MAIN.map((item) => {
+                const active = navItemActive(pathname, item.href);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={onClose}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
+                      active
+                        ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.16)]"
+                        : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                    )}
+                  >
+                    <Icon
+                      className={cn(
+                        "h-5 w-5 shrink-0 transition-colors duration-200",
+                        active ? "text-primary" : "text-muted-foreground",
+                      )}
+                      aria-hidden
+                    />
+                    <span className="flex-1 truncate">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="border-t border-border p-3">
+              <Link
+                href="/select-organization"
+                onClick={onClose}
+                className="mb-2 block text-xs text-muted-foreground transition-colors hover:text-primary"
+              >
+                Змінити організацію
+              </Link>
+              <form action={signOut}>
+                <Button
+                  type="submit"
+                  variant="ghost"
+                  className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground"
+                >
+                  <LogOut className="h-5 w-5 shrink-0" aria-hidden />
+                  <span className="text-sm font-medium">Вихід</span>
+                </Button>
+              </form>
+            </div>
+          </motion.aside>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
   );
 }

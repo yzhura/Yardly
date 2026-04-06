@@ -20,7 +20,7 @@ export default async function TeamInvitePage() {
     activeMembership.role === "OWNER" || activeMembership.role === "ADMIN";
 
   return (
-    <div>
+    <div className="space-y-4">
       <Button
         variant="ghost"
         className="w-fit gap-2 px-0 text-muted-foreground"
@@ -31,9 +31,9 @@ export default async function TeamInvitePage() {
           До списку команди
         </Link>
       </Button>
-      <div className="mx-auto flex max-w-2xl flex-col gap-8">
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 sm:gap-8">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             {TEAM_INVITE_UI.cardTitle}
           </h1>
           <p className="mt-2 text-muted-foreground">

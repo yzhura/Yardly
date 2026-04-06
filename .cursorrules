@@ -29,6 +29,7 @@
 7. **Database:** Prisma is the ORM; **always ship schema changes as Prisma migrations** in normal dev (see **Tooling** — use `db:migrate`, not `db:push`, unless explicitly troubleshooting).
 8. **Destructive/critical actions UX:** Reuse a shared confirmation component (e.g. `components/ui/confirm-modal.tsx`) instead of inline `window.confirm`. Execute the actual mutation only after explicit user confirmation. For async feedback, use `toast.promise(...)` with consistent pending/success/error copy.
 9. **Motion-first UI:** Use the `motion` package (`motion/react`) for interactive/admin UI animations. Prefer shared motion presets from `apps/admin/lib/motion.ts` (durations, easing, spring) over inline one-off values to keep a consistent product feel.
+10. **Mobile-first UI:** Build and validate layouts for smartphone widths first, then scale up with `sm`, `md`, `lg` breakpoints. Avoid desktop-only tables/controls on small screens; provide stacked/card alternatives where needed.
 
 ## Admin UI Motion Standards (Apple-like UX)
 - **Library:** For new animated UI behavior, use `motion` primitives (`motion.*`, `AnimatePresence`, layout transitions) instead of custom CSS keyframes unless there is a strong performance reason.

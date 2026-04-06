@@ -12,9 +12,9 @@ export default async function HomePage() {
   const { me, activeMembership } = await requireActiveMembership();
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-8 sm:gap-10">
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
           Дашборд
         </h1>
         <p className="mt-2 max-w-2xl text-muted-foreground">
@@ -55,13 +55,13 @@ export default async function HomePage() {
           <CardHeader className="pb-2">
             <CardDescription>Підказка</CardDescription>
             <CardTitle className="text-lg font-semibold">
-              Навігація зліва
+              Навігація в меню
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Використовуйте меню для переходу до розділів. Неактивні модулі
-              показують сторінку «у розробці».
+              На мобільному відкрийте меню у хедері, на більших екранах
+              використовуйте бічну панель.
             </p>
           </CardContent>
         </Card>

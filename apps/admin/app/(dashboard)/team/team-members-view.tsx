@@ -136,7 +136,9 @@ export function TeamMembersView({
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Користувачі</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+            Користувачі
+          </h1>
           <p className="mt-2 max-w-2xl text-muted-foreground">
             Керуйте вашою командою та призначайте ролі.
           </p>
@@ -209,7 +211,156 @@ export function TeamMembersView({
 
       <Card className="border-border shadow-sm">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="space-y-3 p-3 md:hidden">
+            {isLoading ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                Завантаження...
+              </p>
+            ) : pageRows.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                Немає учасників для відображення.
+              </p>
+            ) : (
+              pageRows.map((row) => {
+                const email = row.user.email;
+                const name = memberDisplayName(email);
+                const initials = memberInitials(email);
+                const role = row.role as TenantMemberRole;
+                const roleIsOwner = role === "OWNER";
+                const isSelf = row.user.id === currentUserId;
+                const actorIsAdmin = actorRole === "ADMIN";
+                const selectedRole = roleDrafts[row.id] ?? role;
+                const canManageRow = canManageMember({
+                  canInvite,
+                  actorRole,
+                  memberRole: role,
+                  isSelf,
+                });
+                const isRowBusy = updateRole.isPending || removeMember.isPending;
+
+                return (
+                  <div
+                    key={row.id}
+                    className="space-y-3 rounded-lg border border-border bg-background p-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground"
+                        aria-hidden
+                      >
+                        {initials}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-foreground">{name}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {email ?? "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="grid gap-3 text-sm">
+                      <div className="space-y-1">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Роль
+                        </p>
+                        {canManageRow ? (
+                          <select
+                            value={selectedRole}
+                            onChange={(e) => {
+                              const nextRole = e.target.value as TenantMemberRole;
+                              if (nextRole === row.role) {
+                                return;
+                              }
+                              setRoleDrafts((prev) => ({
+                                ...prev,
+                                [row.id]: nextRole,
+                              }));
+                              setPendingAction({
+                                type: "role",
+                                membershipId: row.id,
+                                memberName: name,
+                                nextRole,
+                                prevRole: role,
+                              });
+                            }}
+                            className="h-9 w-full rounded-md border border-border bg-background px-2 text-xs"
+                            disabled={isRowBusy}
+                            aria-label={`Роль для ${name}`}
+                          >
+                            {INVITABLE_ROLES.map((currentRole) => (
+                              <option key={currentRole} value={currentRole}>
+                                {organizationRoleLabel(currentRole)}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span
+                            className={cn(
+                              "inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                              roleIsOwner
+                                ? "bg-primary/15 text-primary"
+                                : "bg-muted text-muted-foreground",
+                            )}
+                          >
+                            {organizationRoleLabel(row.role)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Статус
+                        </p>
+                        <span className="flex items-center gap-2 text-foreground">
+                          <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+                          Активний
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Дата додавання
+                        </p>
+                        <p className="text-muted-foreground tabular-nums">
+                          {new Date(row.createdAt).toLocaleDateString("uk-UA")}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Дії
+                        </p>
+                        {canManageRow ? (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            disabled={isRowBusy}
+                            className="w-full"
+                            onClick={() => {
+                              setPendingAction({
+                                type: "delete",
+                                membershipId: row.id,
+                                memberName: name,
+                              });
+                            }}
+                          >
+                            Видалити
+                          </Button>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            {isSelf
+                              ? "Це ви"
+                              : roleIsOwner
+                                ? "Власник"
+                                : actorIsAdmin && role === "ADMIN"
+                                  ? "Недоступно"
+                                  : "—"}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
@@ -378,12 +529,12 @@ export function TeamMembersView({
             </table>
           </div>
           {!isLoading && total > 0 ? (
-            <div className="flex flex-col gap-4 border-t border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4 border-t border-border px-3 py-4 sm:px-6 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-muted-foreground">
                 Показано {from}-{to} з {total} {total === 1 ? "користувача" : "користувачів"}
               </p>
               {totalPages > 1 ? (
-                <nav className="flex flex-wrap items-center justify-end gap-1" aria-label="Сторінки">
+                <nav className="flex flex-wrap items-center justify-start gap-1 sm:justify-end" aria-label="Сторінки">
                   <Button
                     variant="outline"
                     size="icon"
