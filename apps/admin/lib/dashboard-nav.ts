@@ -23,6 +23,6 @@ export const DASHBOARD_NAV_MAIN: DashboardNavItem[] = [
   { href: "/products", label: "Товари", icon: Package },
   { href: "/materials", label: "Склад матеріалів", icon: Warehouse },
   { href: "/production", label: "Виробництво", icon: Factory },
-  { href: "/team/invite", label: "Користувачі", icon: Users },
+  { href: "/team", label: "Користувачі", icon: Users },
   { href: "/settings", label: "Налаштування", icon: Settings },
 ];

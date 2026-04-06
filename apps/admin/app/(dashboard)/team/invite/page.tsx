@@ -1,4 +1,7 @@
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { TeamInviteForm } from "@/components/team-invite-form";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -7,29 +10,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TEAM_INVITE_UI } from "@/constants/team-invite";
-import { ACTIVE_TENANT_COOKIE } from "@/lib/active-tenant-cookie";
-import { requireAuthMe } from "@/lib/auth-server";
 import { organizationRoleLabel } from "@/lib/organization-roles";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { requireActiveMembership } from "@/lib/require-active-membership";
 
 export default async function TeamInvitePage() {
-  const me = await requireAuthMe();
-  const cookieStore = await cookies();
-  const activeTenantId = cookieStore.get(ACTIVE_TENANT_COOKIE)?.value ?? null;
-  const activeMembership = activeTenantId
-    ? me.memberships.find((m) => m.tenant.id === activeTenantId)
-    : undefined;
-
-  if (!activeMembership) {
-    redirect("/select-organization");
-  }
+  const { activeMembership } = await requireActiveMembership();
 
   const canInvite =
     activeMembership.role === "OWNER" || activeMembership.role === "ADMIN";
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-8">
+      <Button variant="ghost" className="w-fit gap-2 px-0 text-muted-foreground" asChild>
+        <Link href="/team">
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+          До списку команди
+        </Link>
+      </Button>
       <div>
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">
           {TEAM_INVITE_UI.cardTitle}

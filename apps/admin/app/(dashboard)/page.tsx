@@ -6,22 +6,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { organizationRoleLabel } from "@/lib/organization-roles";
-import { requireAuthMe } from "@/lib/auth-server";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { ACTIVE_TENANT_COOKIE } from "@/lib/active-tenant-cookie";
+import { requireActiveMembership } from "@/lib/require-active-membership";
 
 export default async function HomePage() {
-  const me = await requireAuthMe();
-  const cookieStore = await cookies();
-  const activeTenantId = cookieStore.get(ACTIVE_TENANT_COOKIE)?.value ?? null;
-  const activeMembership = activeTenantId
-    ? me.memberships.find((m) => m.tenant.id === activeTenantId)
-    : undefined;
-
-  if (!activeMembership) {
-    redirect("/select-organization");
-  }
+  const { me, activeMembership } = await requireActiveMembership();
 
   return (
     <div className="flex flex-col gap-10">

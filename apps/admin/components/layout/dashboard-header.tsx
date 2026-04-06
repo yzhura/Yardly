@@ -6,18 +6,16 @@ import { Input } from "@/components/ui/input";
 type DashboardHeaderProps = {
   tenantName: string;
   userEmail: string | null;
-  canInvite: boolean;
 };
 
 export function DashboardHeader({
   tenantName,
   userEmail,
-  canInvite,
 }: DashboardHeaderProps) {
   const initial = (userEmail?.trim()?.[0] ?? "?").toUpperCase();
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-6 border-b border-border bg-background/95 px-8 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-6 border-b border-border/80 bg-background/90 px-8 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75">
       <div className="min-w-0 shrink-0 max-w-[240px]">
         <p className="truncate text-sm font-semibold text-foreground">
           {tenantName}
@@ -49,22 +47,17 @@ export function DashboardHeader({
           type="button"
           variant="ghost"
           size="icon"
-          className="text-muted-foreground"
+          className="text-muted-foreground transition-all duration-200 hover:scale-[1.02]"
           aria-label="Сповіщення"
           disabled
         >
           <Bell className="h-5 w-5" />
         </Button>
-        {canInvite ? (
-          <Button className="hidden shadow-sm sm:inline-flex" asChild>
-            <Link href="/team/invite">Запросити в команду</Link>
-          </Button>
-        ) : null}
         <Button
           type="button"
           variant="outline"
           size="icon"
-          className="h-10 w-10 rounded-full border-border p-0 font-semibold shadow-sm"
+          className="h-10 w-10 rounded-full border-border/90 bg-background/80 p-0 font-semibold shadow-sm transition-all duration-200 hover:scale-[1.02] hover:shadow"
           aria-label={userEmail ? `Акаунт ${userEmail}` : "Профіль"}
         >
           {initial}
