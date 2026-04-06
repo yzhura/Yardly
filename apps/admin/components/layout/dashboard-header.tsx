@@ -61,16 +61,6 @@ export function DashboardHeader({
         <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
           <Button
             type="button"
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground transition-all duration-200 hover:scale-[1.02]"
-            aria-label="Сповіщення"
-            disabled
-          >
-            <Bell className="h-5 w-5" />
-          </Button>
-          <Button
-            type="button"
             variant="outline"
             size="icon"
             className="h-9 w-9 rounded-full border-border/90 bg-background/80 p-0 text-sm font-semibold shadow-sm transition-all duration-200 hover:scale-[1.02] hover:shadow sm:h-10 sm:w-10"
