@@ -20,40 +20,46 @@ export default async function TeamInvitePage() {
     activeMembership.role === "OWNER" || activeMembership.role === "ADMIN";
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-8">
-      <Button variant="ghost" className="w-fit gap-2 px-0 text-muted-foreground" asChild>
+    <div>
+      <Button
+        variant="ghost"
+        className="w-fit gap-2 px-0 text-muted-foreground"
+        asChild
+      >
         <Link href="/team">
           <ChevronLeft className="h-4 w-4" aria-hidden />
           До списку команди
         </Link>
       </Button>
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-          {TEAM_INVITE_UI.cardTitle}
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          {activeMembership.tenant.name} · ви —{" "}
-          {organizationRoleLabel(activeMembership.role)}
-        </p>
-      </div>
+      <div className="mx-auto flex max-w-2xl flex-col gap-8">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+            {TEAM_INVITE_UI.cardTitle}
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            {activeMembership.tenant.name} · ви —{" "}
+            {organizationRoleLabel(activeMembership.role)}
+          </p>
+        </div>
 
-      <Card className="border-border shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg">Запрошення</CardTitle>
-          <CardDescription>
-            Надішліть колезі доступ до цієї організації.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {!canInvite ? (
-            <p className="text-sm text-muted-foreground">
-              {TEAM_INVITE_UI.forbiddenHint}
-            </p>
-          ) : (
-            <TeamInviteForm />
-          )}
-        </CardContent>
-      </Card>
+        <Card className="border-border shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">Запрошення</CardTitle>
+            <CardDescription>
+              Надішліть колезі доступ до цієї організації.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {!canInvite ? (
+              <p className="text-sm text-muted-foreground">
+                {TEAM_INVITE_UI.forbiddenHint}
+              </p>
+            ) : (
+              <TeamInviteForm />
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
