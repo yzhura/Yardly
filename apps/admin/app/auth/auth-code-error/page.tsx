@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AuthHashRescue } from "@/components/auth-hash-rescue";
+import { AuthHashRescue } from "@/components/auth/auth-hash-rescue";
 import { Button } from "@/components/ui/button";
 import {
   Card,

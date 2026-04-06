@@ -8,7 +8,7 @@ import {
   INVITE_ERROR_CODES,
   TEAM_INVITE_UI,
 } from "@/constants/team-invite";
-import { FormError, FormSuccess } from "@/components/form-message";
+import { FormError, FormSuccess } from "@/components/common/form-message";
 import { Button } from "@/components/ui/button";
 import {
   Form,

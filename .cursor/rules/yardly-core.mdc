@@ -3,7 +3,7 @@ description: Yardly canonical project context — stack, security, code style, t
 alwaysApply: true
 ---
 
-# Yardly: Core Development Rules (v1.4)
+# Yardly: Core Development Rules (v1.5)
 
 **Cursor rules layout:** This file is the single always-on rule. Add other `.mdc` files under `.cursor/rules/` only for large, narrow topics (use explicit `globs`) so context is not duplicated.
 
@@ -19,6 +19,17 @@ alwaysApply: true
 ## Tech Stack (DO NOT DEVIATE)
 - **Monorepo Structure:**
   - `/apps/admin`: Next.js 15 (App Router), Tailwind CSS, **Shadcn UI** (`components/ui/*` — prefer these primitives over ad-hoc markup; add missing ones with the Shadcn CLI). **Axios** for **client-side** HTTP to the Nest API; **TanStack Query** custom hooks (prefer `apps/admin/api/**/use-*.ts`; legacy `apps/admin/hooks/*` still allowed) should use a shared Axios instance (base URL, auth headers, error normalization), not scattered `fetch`. Server Actions and other **server-only** callers may use `fetch` or the same patterns as today — do not import browser Axios helpers into Server Components.
+  - **Admin `apps/admin/components/` layout:** Keep **domain and concern separated** — do not drop new feature UI in the `components/` root.
+    - **`ui/`** — Shadcn primitives only (buttons, card, form, skeleton base, etc.).
+    - **`layout/`** — app chrome (sidebar, dashboard header, motion wrapper) and **dashboard-wide** loading shell (e.g. `dashboard-page-skeleton.tsx`).
+    - **`providers/`** — React providers (theme, query).
+    - **`common/`** — small **cross-cutting** widgets reused across routes (e.g. form success/error alerts, `ComingSoon`, logo) — **not** tied to one business domain.
+    - **`team/`** — team feature module: member list view, invite form, table pieces, team-specific skeletons.
+    - **`settings/`** — settings screens (e.g. theme card) and settings route skeleton.
+    - **`auth/`** — auth-only UI helpers and auth loading card skeleton.
+    - **`organization/`** — select-organization / setup-tenant flows, shared full-screen card layout for those routes, org-related skeletons.
+    - **`skeletons/`** — **only** shared skeleton **composition** helpers (`skeleton-blocks.tsx` and similar if added). **Domain screens** keep their own `*-skeleton.tsx` next to the feature (`team/`, `auth/`, etc.).
+    - **New domains** (e.g. orders, materials): add `components/<domain>/` and colocate that feature’s components + skeletons there; keep `app/` route files thin (`page.tsx` imports from `@/components/<domain>/…`).
   - `/apps/api`: NestJS (modular architecture).
   - `/packages/database`: Prisma ORM + Supabase (PostgreSQL).
 - **Auth:** Supabase Auth (Magic Links only). Nest validates JWTs with **anon** key (`SUPABASE_ANON_KEY`), never `service_role` in the admin bundle. Employee invites use `SUPABASE_SERVICE_ROLE_KEY` **only** in `apps/api` (never in the browser bundle).
@@ -31,13 +42,14 @@ alwaysApply: true
 2. **Type safety:** Use TypeScript strictly (`strict` where the project allows). Share contracts between admin and API via explicit DTOs on the backend and matching types or generated shapes on the frontend; prefer a small shared package or well-defined API response types over duplicating fragile literals.
 3. **Modular NestJS:** Follow **Module → Service → Controller**. Put business logic in **Services**; Controllers stay thin (validation, auth guards, mapping to HTTP).
 4. **Don't break, extend:** Before changing shared behavior, trace callers and tenant/auth impact; extend with new methods or optional fields rather than silent breaking changes unless coordinated.
-5. **Clean UI (Shadcn):** Build admin UI from **Shadcn UI** components in `apps/admin/components/ui/`. Keep screens composable and small; do **not** default to raw `<select>`, unstyled inputs, or one-off class soup when a Shadcn primitive exists or can be added (e.g. run `npx shadcn@latest add select`). Prefer **RHF + Yup** for client forms; for legacy Server Actions that still use `FormData`, use Shadcn `Select` with a hidden `<input name="…" />` mirroring the value, or a small client subcomponent — don't fall back to unstyled native controls for convenience.
-6. **Client API layer:** Add a single **Axios instance** (e.g. `apps/admin/api/client.ts`) wired to `NEXT_PUBLIC_API_URL`, with interceptors for `Authorization: Bearer <access_token>` when calling Nest from the browser. Custom hooks wrap mutations/queries around that instance. Never send `service_role` or other secrets from the admin bundle.
-7. **Database:** Prisma is the ORM; **always ship schema changes as Prisma migrations** in normal dev (see **Tooling** — use `db:migrate`, not `db:push`, unless explicitly troubleshooting).
-8. **Destructive/critical actions UX:** Reuse a shared confirmation component (e.g. `components/ui/confirm-modal.tsx`) instead of inline `window.confirm`. Execute the actual mutation only after explicit user confirmation. For async feedback, use `toast.promise(...)` with consistent pending/success/error copy.
-9. **Motion-first UI:** Use the `motion` package (`motion/react`) for interactive/admin UI animations. Prefer shared motion presets from `apps/admin/lib/motion.ts` (durations, easing, spring) over inline one-off values to keep a consistent product feel.
-10. **Mobile-first UI:** Build and validate layouts for smartphone widths first, then scale up with `sm`, `md`, `lg` breakpoints. Avoid desktop-only tables/controls on small screens without mitigation — use stacked/card layouts, or a **horizontally scrollable** table inside a bounded container so the page does not overflow sideways.
-11. **Readable control flow (TS/TSX):** Do not chain multiple levels of ternary operators in JSX or prop values. For several variants (copy, props), use a **`switch` on a discriminant** (e.g. `action.type`), a small **helper function** with explicit `returns`, or a **lookup map**. Avoid deep `if` nesting in JSX — extract a helper or a child component with early returns.
+5. **Clean UI (Shadcn):** Compose screens from **Shadcn UI** in `apps/admin/components/ui/`. Place **feature-level** views and forms in the appropriate **domain folder** (see **Admin `components/` layout** under Tech Stack), not in `components/` root. Keep screens composable and small; do **not** default to raw `<select>`, unstyled inputs, or one-off class soup when a Shadcn primitive exists or can be added (e.g. run `npx shadcn@latest add select`). Prefer **RHF + Yup** for client forms; for legacy Server Actions that still use `FormData`, use Shadcn `Select` with a hidden `<input name="…" />` mirroring the value, or a small client subcomponent — don't fall back to unstyled native controls for convenience.
+6. **Loading / skeletons:** Use Shadcn `Skeleton` (`components/ui/skeleton.tsx`) and shared blocks from `components/skeletons/skeleton-blocks.tsx`. Place domain-specific skeleton files in the **same folder as the feature** (see **Admin `components/` layout** above). Placeholders must **match the real layout** (cards, tables, stats). Use route-level `loading.tsx` where the App Router segment can suspend; for TanStack Query, show skeleton UI when `isLoading` (or equivalent) instead of only static copy. **Do not nest block-level skeletons inside heading elements** (`CardTitle` renders `<h3>`) — use a `div` with the same typography classes or keep skeletons in non-heading wrappers. Prefer `aria-busy` and a concise `aria-label` on the loading region when it improves assistive-tech context.
+7. **Client API layer:** Add a single **Axios instance** (e.g. `apps/admin/api/client.ts`) wired to `NEXT_PUBLIC_API_URL`, with interceptors for `Authorization: Bearer <access_token>` when calling Nest from the browser. Custom hooks wrap mutations/queries around that instance. Never send `service_role` or other secrets from the admin bundle.
+8. **Database:** Prisma is the ORM; **always ship schema changes as Prisma migrations** in normal dev (see **Tooling** — use `db:migrate`, not `db:push`, unless explicitly troubleshooting).
+9. **Destructive/critical actions UX:** Reuse a shared confirmation component (e.g. `components/ui/confirm-modal.tsx`) instead of inline `window.confirm`. Execute the actual mutation only after explicit user confirmation. For async feedback, use `toast.promise(...)` with consistent pending/success/error copy.
+10. **Motion-first UI:** Use the `motion` package (`motion/react`) for interactive/admin UI animations. Prefer shared motion presets from `apps/admin/lib/motion.ts` (durations, easing, spring) over inline one-off values to keep a consistent product feel.
+11. **Mobile-first UI:** Build and validate layouts for smartphone widths first, then scale up with `sm`, `md`, `lg` breakpoints. Avoid desktop-only tables/controls on small screens without mitigation — use stacked/card layouts, or a **horizontally scrollable** table inside a bounded container so the page does not overflow sideways.
+12. **Readable control flow (TS/TSX):** Do not chain multiple levels of ternary operators in JSX or prop values. For several variants (copy, props), use a **`switch` on a discriminant** (e.g. `action.type`), a small **helper function** with explicit `returns`, or a **lookup map**. Avoid deep `if` nesting in JSX — extract a helper or a child component with early returns.
 
 ```tsx
 // Bad: nested ternaries in props

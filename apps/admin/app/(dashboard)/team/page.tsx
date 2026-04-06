@@ -1,5 +1,5 @@
 import { requireActiveMembership } from "@/lib/require-active-membership";
-import { TeamMembersView } from "./team-members-view";
+import { TeamMembersView } from "@/components/team/team-members-view";
 
 export default async function TeamPage() {
   const { me, activeMembership } = await requireActiveMembership();

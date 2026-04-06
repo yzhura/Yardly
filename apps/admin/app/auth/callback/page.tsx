@@ -2,6 +2,9 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AuthCardSkeleton } from "@/components/auth/auth-card-skeleton";
 import { createClient } from "@/lib/supabase/client";
 import {
   type EmailOtpType,
@@ -159,20 +162,24 @@ function CallbackContent() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
-      <p className="text-sm text-muted-foreground">{status}</p>
+      <Card className="w-full max-w-md border-border shadow-sm" aria-busy="true">
+        <CardHeader className="space-y-2">
+          <Skeleton className="h-7 w-40" aria-hidden />
+          <div className="text-sm text-muted-foreground">
+            <Skeleton className="h-4 w-full max-w-[280px]" aria-hidden />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">{status}</p>
+        </CardContent>
+      </Card>
     </main>
   );
 }
 
 export default function AuthCallbackPage() {
   return (
-    <Suspense
-      fallback={
-        <main className="flex min-h-screen items-center justify-center bg-background px-4">
-          <p className="text-sm text-muted-foreground">Завантаження…</p>
-        </main>
-      }
-    >
+    <Suspense fallback={<AuthCardSkeleton />}>
       <CallbackContent />
     </Suspense>
   );

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { TeamInviteForm } from "@/components/team-invite-form";
+import { TeamInviteForm } from "@/components/team/team-invite-form";
 import { Button } from "@/components/ui/button";
 import {
   Card,

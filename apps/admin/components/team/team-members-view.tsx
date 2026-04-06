@@ -21,6 +21,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { Skeleton } from "@/components/ui/skeleton";
+import { TeamMembersTableBodySkeleton } from "./team-members-skeleton";
+import { TeamMembersTableHeadRow } from "./team-members-table-head";
 import {
   useReactivateMember,
   useRemoveMember,
@@ -240,18 +243,28 @@ export function TeamMembersView({
           <Card className="border-border shadow-sm">
           <CardHeader className="pb-2">
             <CardDescription>Усього в команді</CardDescription>
-            <CardTitle className="text-3xl font-semibold tabular-nums">
-              {isLoading ? "—" : total}
-            </CardTitle>
+            <div
+              className="text-3xl font-semibold tabular-nums text-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              {isLoading ? (
+                <Skeleton className="h-9 w-14" aria-hidden />
+              ) : (
+                total
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-primary">
-              {isLoading
-                ? "Завантаження..."
-                : addedThisMonth > 0
+            {isLoading ? (
+              <Skeleton className="h-4 w-44" aria-hidden />
+            ) : (
+              <p className="text-sm text-primary">
+                {addedThisMonth > 0
                   ? `+${addedThisMonth} цього місяця`
                   : "Нових цього місяця немає"}
-            </p>
+              </p>
+            )}
           </CardContent>
           </Card>
         </motion.div>
@@ -294,33 +307,16 @@ export function TeamMembersView({
       <Card className="border-border shadow-sm">
         <CardContent className="p-0">
           <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-            <table className="w-full min-w-[640px] text-left text-sm">
+            <table
+              className="w-full min-w-[640px] text-left text-sm"
+              aria-busy={isLoading}
+            >
               <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="px-6 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Користувач
-                  </th>
-                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Роль
-                  </th>
-                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Статус
-                  </th>
-                  <th className="px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Дата додавання
-                  </th>
-                  <th className="px-6 py-3 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Дії
-                  </th>
-                </tr>
+                <TeamMembersTableHeadRow />
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
-                      Завантаження...
-                    </td>
-                  </tr>
+                  <TeamMembersTableBodySkeleton />
                 ) : pageRows.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">

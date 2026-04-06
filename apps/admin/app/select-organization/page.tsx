@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { selectOrganization } from "@/app/actions/org";
-import { FormError } from "@/components/form-message";
+import { FormError } from "@/components/common/form-message";
 import { Button } from "@/components/ui/button";
 import {
   Card,

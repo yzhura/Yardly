@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FormError, FormSuccess } from "@/components/form-message";
+import { FormError, FormSuccess } from "@/components/common/form-message";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
