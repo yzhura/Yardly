@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { APPLE_SPRING, MOTION_DURATION, MOTION_EASE } from "@/lib/motion";
@@ -28,6 +29,8 @@ export function ConfirmModal({
   onConfirm,
   onClose,
 }: ConfirmModalProps) {
+  const canUsePortal = typeof window !== "undefined";
+
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
@@ -41,11 +44,11 @@ export function ConfirmModal({
     };
   }, [open, loading, onClose]);
 
-  return (
+  const modal = (
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -88,4 +91,10 @@ export function ConfirmModal({
       ) : null}
     </AnimatePresence>
   );
+
+  if (!canUsePortal) {
+    return modal;
+  }
+
+  return createPortal(modal, document.body);
 }
