@@ -29,7 +29,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
 
   if (!res.ok) {
     return NextResponse.json(
-      { message: "Failed to update member role" },
+      { message: "Failed to update member" },
       { status: res.status },
     );
   }
@@ -56,10 +56,11 @@ export async function DELETE(_: Request, { params }: RouteParams) {
 
   if (!res.ok) {
     return NextResponse.json(
-      { message: "Failed to remove member" },
+      { message: "Failed to deactivate member" },
       { status: res.status },
     );
   }
 
-  return NextResponse.json({ ok: true }, { status: 200 });
+  const data = await res.json();
+  return NextResponse.json(data, { status: 200 });
 }

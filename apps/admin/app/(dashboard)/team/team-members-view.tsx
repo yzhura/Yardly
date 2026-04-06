@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
+  Trash2,
+  UserCheck,
   UserCog,
   UserPlus,
 } from "lucide-react";
@@ -19,9 +21,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
-import { useRemoveMember, useUpdateMemberRole } from "@/api/members/use-member-actions";
+import {
+  useReactivateMember,
+  useRemoveMember,
+  useUpdateMemberRole,
+} from "@/api/members/use-member-actions";
 import { useMembers } from "@/api/members/use-members";
-import { type TenantMemberRole } from "@/api/members/types";
+import { type TenantMemberRole, type TenantMemberStatus } from "@/api/members/types";
 import { toast } from "react-toastify";
 import {
   INVITABLE_ROLES,
@@ -50,23 +56,96 @@ type PendingAction =
       prevRole: TenantMemberRole;
     }
   | {
-      type: "delete";
+      type: "deactivate";
+      membershipId: string;
+      memberName: string;
+    }
+  | {
+      type: "reactivate";
       membershipId: string;
       memberName: string;
     };
+
+type PendingConfirmCopy = {
+  title: string;
+  description?: string;
+  confirmLabel: string;
+  confirmVariant: "default" | "destructive";
+};
+
+function pendingActionConfirmCopy(
+  action: PendingAction | null,
+): PendingConfirmCopy {
+  if (!action) {
+    return {
+      title: "Підтвердити зміну ролі",
+      description: undefined,
+      confirmLabel: "Підтвердити",
+      confirmVariant: "default",
+    };
+  }
+
+  switch (action.type) {
+    case "deactivate":
+      return {
+        title: "Підтвердити деактивацію",
+        description: `Ви дійсно хочете деактивувати ${action.memberName}? Користувач втратить доступ до системи.`,
+        confirmLabel: "Деактивувати",
+        confirmVariant: "destructive",
+      };
+    case "reactivate":
+      return {
+        title: "Підтвердити відновлення",
+        description: `Повернути доступ для ${action.memberName}? Користувач знову зможе користуватися системою.`,
+        confirmLabel: "Відновити",
+        confirmVariant: "default",
+      };
+    case "role":
+      return {
+        title: "Підтвердити зміну ролі",
+        description: `Змінити роль для ${action.memberName} на «${organizationRoleLabel(action.nextRole)}»?`,
+        confirmLabel: "Підтвердити",
+        confirmVariant: "default",
+      };
+  }
+}
 
 function canManageMember({
   canInvite,
   actorRole,
   memberRole,
+  memberStatus,
   isSelf,
 }: {
   canInvite: boolean;
   actorRole: string;
   memberRole: TenantMemberRole;
+  memberStatus: TenantMemberStatus;
   isSelf: boolean;
 }) {
-  if (!canInvite || isSelf || memberRole === "OWNER") {
+  if (!canInvite || isSelf || memberRole === "OWNER" || memberStatus === "DEACTIVATED") {
+    return false;
+  }
+  if (actorRole === "ADMIN" && memberRole === "ADMIN") {
+    return false;
+  }
+  return true;
+}
+
+function canReactivateMember({
+  canInvite,
+  actorRole,
+  memberRole,
+  memberStatus,
+  isSelf,
+}: {
+  canInvite: boolean;
+  actorRole: string;
+  memberRole: TenantMemberRole;
+  memberStatus: TenantMemberStatus;
+  isSelf: boolean;
+}) {
+  if (!canInvite || isSelf || memberRole === "OWNER" || memberStatus !== "DEACTIVATED") {
     return false;
   }
   if (actorRole === "ADMIN" && memberRole === "ADMIN") {
@@ -85,6 +164,7 @@ export function TeamMembersView({
   const { data, isLoading, isError } = useMembers(tenantId);
   const updateRole = useUpdateMemberRole();
   const removeMember = useRemoveMember();
+  const reactivateMember = useReactivateMember();
   const [roleDrafts, setRoleDrafts] = useState<Record<string, TenantMemberRole>>(
     {},
   );
@@ -112,7 +192,9 @@ export function TeamMembersView({
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const addedThisMonth = members.filter((m) => new Date(m.createdAt) >= monthStart).length;
-  const isConfirmBusy = updateRole.isPending || removeMember.isPending;
+  const isConfirmBusy =
+    updateRole.isPending || removeMember.isPending || reactivateMember.isPending;
+  const confirmModalCopy = pendingActionConfirmCopy(pendingAction);
 
   if (isError) {
     return (
@@ -251,6 +333,7 @@ export function TeamMembersView({
                     const name = memberDisplayName(email);
                     const initials = memberInitials(email);
                     const role = row.role as TenantMemberRole;
+                    const status = row.status as TenantMemberStatus;
                     const roleIsOwner = role === "OWNER";
                     const isSelf = row.user.id === currentUserId;
                     const actorIsAdmin = actorRole === "ADMIN";
@@ -259,10 +342,20 @@ export function TeamMembersView({
                       canInvite,
                       actorRole,
                       memberRole: role,
+                      memberStatus: status,
+                      isSelf,
+                    });
+                    const canReactivateRow = canReactivateMember({
+                      canInvite,
+                      actorRole,
+                      memberRole: role,
+                      memberStatus: status,
                       isSelf,
                     });
                     const isRowBusy =
-                      updateRole.isPending || removeMember.isPending;
+                      updateRole.isPending ||
+                      removeMember.isPending ||
+                      reactivateMember.isPending;
                     return (
                       <motion.tr
                         key={row.id}
@@ -334,10 +427,17 @@ export function TeamMembersView({
                           )}
                         </td>
                         <td className="px-4 py-4">
-                          <span className="flex items-center gap-2 text-foreground">
-                            <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
-                            Активний
-                          </span>
+                          {status === "DEACTIVATED" ? (
+                            <span className="flex items-center gap-2 text-muted-foreground">
+                              <span className="h-2 w-2 shrink-0 rounded-full bg-muted-foreground/50" aria-hidden />
+                              Деактивований
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-2 text-foreground">
+                              <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-hidden />
+                              Активний
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-4 text-muted-foreground tabular-nums">
                           {new Date(row.createdAt).toLocaleDateString("uk-UA")}
@@ -346,18 +446,41 @@ export function TeamMembersView({
                           {canManageRow ? (
                             <div className="flex items-center justify-end">
                               <Button
-                                size="sm"
+                                type="button"
+                                size="icon"
                                 variant="destructive"
+                                className="h-9 w-9 shrink-0"
                                 disabled={isRowBusy}
+                                aria-label={`Деактивувати ${name}`}
                                 onClick={() => {
                                   setPendingAction({
-                                    type: "delete",
+                                    type: "deactivate",
                                     membershipId: row.id,
                                     memberName: name,
                                   });
                                 }}
                               >
-                                Видалити
+                                <Trash2 className="h-4 w-4" aria-hidden />
+                              </Button>
+                            </div>
+                          ) : canReactivateRow ? (
+                            <div className="flex items-center justify-end">
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="outline"
+                                className="h-9 w-9 shrink-0"
+                                disabled={isRowBusy}
+                                aria-label={`Відновити доступ для ${name}`}
+                                onClick={() => {
+                                  setPendingAction({
+                                    type: "reactivate",
+                                    membershipId: row.id,
+                                    memberName: name,
+                                  });
+                                }}
+                              >
+                                <UserCheck className="h-4 w-4" aria-hidden />
                               </Button>
                             </div>
                           ) : (
@@ -368,7 +491,9 @@ export function TeamMembersView({
                                   ? "Власник"
                                   : actorIsAdmin && role === "ADMIN"
                                     ? "Недоступно"
-                                    : "—"}
+                                    : status === "DEACTIVATED"
+                                      ? "Деактивовано"
+                                      : "—"}
                             </p>
                           )}
                         </td>
@@ -448,26 +573,10 @@ export function TeamMembersView({
       </Card>
       <ConfirmModal
         open={pendingAction !== null}
-        title={
-          pendingAction?.type === "delete"
-            ? "Підтвердити видалення"
-            : "Підтвердити зміну ролі"
-        }
-        description={
-          pendingAction?.type === "delete"
-            ? `Ви дійсно хочете видалити ${pendingAction.memberName} з команди?`
-            : pendingAction?.type === "role"
-              ? `Змінити роль для ${pendingAction.memberName} на «${organizationRoleLabel(
-                  pendingAction.nextRole,
-                )}»?`
-              : undefined
-        }
-        confirmLabel={
-          pendingAction?.type === "delete" ? "Видалити" : "Підтвердити"
-        }
-        confirmVariant={
-          pendingAction?.type === "delete" ? "destructive" : "default"
-        }
+        title={confirmModalCopy.title}
+        description={confirmModalCopy.description}
+        confirmLabel={confirmModalCopy.confirmLabel}
+        confirmVariant={confirmModalCopy.confirmVariant}
         loading={isConfirmBusy}
         onClose={() => {
           if (pendingAction?.type === "role") {
@@ -505,14 +614,32 @@ export function TeamMembersView({
             return;
           }
 
+          if (pendingAction.type === "reactivate") {
+            const promise = reactivateMember.mutateAsync({
+              tenantId,
+              membershipId: pendingAction.membershipId,
+            });
+            toast.promise(promise, {
+              pending: "Відновлюємо доступ...",
+              success: "Доступ відновлено",
+              error: "Не вдалося відновити доступ. Перевірте права доступу.",
+            });
+            try {
+              await promise;
+            } finally {
+              setPendingAction(null);
+            }
+            return;
+          }
+
           const promise = removeMember.mutateAsync({
             tenantId,
             membershipId: pendingAction.membershipId,
           });
           toast.promise(promise, {
-            pending: "Видаляємо користувача...",
-            success: "Користувача видалено",
-            error: "Не вдалося видалити користувача. Перевірте права доступу.",
+            pending: "Деактивуємо користувача...",
+            success: "Користувача деактивовано",
+            error: "Не вдалося деактивувати користувача. Перевірте права доступу.",
           });
           try {
             await promise;

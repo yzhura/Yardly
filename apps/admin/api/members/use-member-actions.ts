@@ -15,6 +15,11 @@ type RemoveMemberInput = {
   membershipId: string;
 };
 
+type ReactivateMemberInput = {
+  tenantId: string;
+  membershipId: string;
+};
+
 async function updateMemberRole(input: UpdateRoleInput) {
   const { data } = await apiClient.patch(
     `/api/tenants/${input.tenantId}/members/${input.membershipId}`,
@@ -23,11 +28,19 @@ async function updateMemberRole(input: UpdateRoleInput) {
   return data;
 }
 
+async function reactivateMember(input: ReactivateMemberInput) {
+  const { data } = await apiClient.patch(
+    `/api/tenants/${input.tenantId}/members/${input.membershipId}`,
+    { status: "ACTIVE" },
+  );
+  return data as { member: { id: string; status: "ACTIVE" } };
+}
+
 async function removeMember(input: RemoveMemberInput) {
   const { data } = await apiClient.delete(
     `/api/tenants/${input.tenantId}/members/${input.membershipId}`,
   );
-  return data as { ok: boolean };
+  return data as { member: { id: string; status: "DEACTIVATED" } };
 }
 
 export function useUpdateMemberRole() {
@@ -46,6 +59,18 @@ export function useRemoveMember() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: removeMember,
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["members", variables.tenantId],
+      });
+    },
+  });
+}
+
+export function useReactivateMember() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: reactivateMember,
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["members", variables.tenantId],

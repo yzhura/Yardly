@@ -9,7 +9,7 @@ import {
 import { ConfigService } from "@nestjs/config";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import type { AuthError } from "@supabase/supabase-js";
-import { InvitationStatus, type User } from "@prisma/client";
+import { InvitationStatus, MembershipStatus, type User } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { SupabaseAdminService } from "../supabase/supabase-admin.service";
 import { UsersService } from "../users/users.service";
@@ -99,6 +99,9 @@ export class InvitationsService {
     });
     if (!membership) {
       throw new ForbiddenException("not_a_member_of_tenant");
+    }
+    if (membership.status !== MembershipStatus.ACTIVE) {
+      throw new ForbiddenException("membership_deactivated");
     }
     if (membership.role !== "OWNER" && membership.role !== "ADMIN") {
       throw new ForbiddenException("insufficient_role_to_invite");

@@ -1,8 +1,10 @@
 export type TenantMemberRole = "OWNER" | "ADMIN" | "MANAGER" | "SHIPPER";
+export type TenantMemberStatus = "ACTIVE" | "DEACTIVATED";
 
 export type TenantMemberRow = {
   id: string;
   role: TenantMemberRole;
+  status: TenantMemberStatus;
   createdAt: string;
   user: { id: string; email: string | null };
 };

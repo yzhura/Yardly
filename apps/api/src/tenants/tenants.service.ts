@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { OrganizationRole } from "@prisma/client";
+import { MembershipStatus, OrganizationRole } from "@prisma/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { PrismaService } from "../prisma/prisma.service";
 import { UsersService } from "../users/users.service";
@@ -54,6 +54,7 @@ export class TenantsService {
       members: rows.map((m) => ({
         id: m.id,
         role: m.role,
+        status: m.status,
         createdAt: m.createdAt.toISOString(),
         user: { id: m.user.id, email: m.user.email },
       })),
@@ -68,6 +69,9 @@ export class TenantsService {
     });
     if (!membership) {
       throw new ForbiddenException("not_a_member_of_tenant");
+    }
+    if (membership.status !== MembershipStatus.ACTIVE) {
+      throw new ForbiddenException("membership_deactivated");
     }
     return membership;
   }
@@ -93,6 +97,32 @@ export class TenantsService {
     return target;
   }
 
+  async patchMember(
+    supabaseUser: SupabaseUser,
+    tenantId: string,
+    membershipId: string,
+    dto: {
+      role?: "ADMIN" | "MANAGER" | "SHIPPER";
+      status?: MembershipStatus;
+    },
+  ) {
+    const hasRole = dto.role !== undefined;
+    const hasStatus = dto.status !== undefined;
+    if (!hasRole && !hasStatus) {
+      throw new BadRequestException("no_updates");
+    }
+    if (hasRole && hasStatus) {
+      throw new BadRequestException("conflicting_updates");
+    }
+    if (hasStatus) {
+      if (dto.status !== MembershipStatus.ACTIVE) {
+        throw new BadRequestException("invalid_status");
+      }
+      return this.reactivateMember(supabaseUser, tenantId, membershipId);
+    }
+    return this.updateMemberRole(supabaseUser, tenantId, membershipId, dto.role!);
+  }
+
   async updateMemberRole(
     supabaseUser: SupabaseUser,
     tenantId: string,
@@ -102,6 +132,9 @@ export class TenantsService {
     const actor = await this.usersService.upsertFromSupabaseUser(supabaseUser);
     const actorMembership = await this.assertCanManageMembers(actor.id, tenantId);
     const target = await this.getTargetMembership(tenantId, membershipId);
+    if (target.status !== MembershipStatus.ACTIVE) {
+      throw new BadRequestException("cannot_change_role_of_deactivated_member");
+    }
     if (target.userId === actor.id) {
       throw new BadRequestException("cannot_change_own_role");
     }
@@ -125,6 +158,48 @@ export class TenantsService {
       member: {
         id: updated.id,
         role: updated.role,
+        status: updated.status,
+        createdAt: updated.createdAt.toISOString(),
+        user: { id: updated.user.id, email: updated.user.email },
+      },
+    };
+  }
+
+  async reactivateMember(
+    supabaseUser: SupabaseUser,
+    tenantId: string,
+    membershipId: string,
+  ) {
+    const actor = await this.usersService.upsertFromSupabaseUser(supabaseUser);
+    const actorMembership = await this.assertCanManageMembers(actor.id, tenantId);
+    const target = await this.getTargetMembership(tenantId, membershipId);
+    if (target.status !== MembershipStatus.DEACTIVATED) {
+      throw new BadRequestException("membership_not_deactivated");
+    }
+    if (target.userId === actor.id) {
+      throw new BadRequestException("cannot_reactivate_self");
+    }
+    if (target.role === OrganizationRole.OWNER) {
+      throw new ForbiddenException("cannot_reactivate_owner");
+    }
+    if (
+      actorMembership.role === OrganizationRole.ADMIN &&
+      target.role === OrganizationRole.ADMIN
+    ) {
+      throw new ForbiddenException("admin_cannot_reactivate_admin");
+    }
+
+    const updated = await this.prisma.membership.update({
+      where: { id: target.id },
+      data: { status: MembershipStatus.ACTIVE },
+      include: { user: true },
+    });
+
+    return {
+      member: {
+        id: updated.id,
+        role: updated.role,
+        status: updated.status,
         createdAt: updated.createdAt.toISOString(),
         user: { id: updated.user.id, email: updated.user.email },
       },
@@ -152,7 +227,20 @@ export class TenantsService {
       throw new ForbiddenException("admin_cannot_remove_admin");
     }
 
-    await this.prisma.membership.delete({ where: { id: target.id } });
-    return { ok: true };
+    const updated = await this.prisma.membership.update({
+      where: { id: target.id },
+      data: { status: MembershipStatus.DEACTIVATED },
+      include: { user: true },
+    });
+
+    return {
+      member: {
+        id: updated.id,
+        role: updated.role,
+        status: updated.status,
+        createdAt: updated.createdAt.toISOString(),
+        user: { id: updated.user.id, email: updated.user.email },
+      },
+    };
   }
 }

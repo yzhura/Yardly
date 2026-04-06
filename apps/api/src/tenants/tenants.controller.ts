@@ -12,7 +12,7 @@ import type { User } from "@supabase/supabase-js";
 import { AuthUser } from "../auth/auth-user.decorator";
 import { SupabaseAuthGuard } from "../auth/supabase-auth.guard";
 import { SetupTenantDto } from "./dto/setup-tenant.dto";
-import { UpdateMemberRoleDto } from "./dto/update-member-role.dto";
+import { UpdateMemberDto } from "./dto/update-member.dto";
 import { TenantsService } from "./tenants.service";
 
 @Controller("tenants")
@@ -30,18 +30,13 @@ export class TenantsController {
 
   @Patch(":tenantId/members/:membershipId")
   @UseGuards(SupabaseAuthGuard)
-  updateMemberRole(
+  updateMember(
     @AuthUser() supabaseUser: User,
     @Param("tenantId") tenantId: string,
     @Param("membershipId") membershipId: string,
-    @Body() body: UpdateMemberRoleDto,
+    @Body() body: UpdateMemberDto,
   ) {
-    return this.tenantsService.updateMemberRole(
-      supabaseUser,
-      tenantId,
-      membershipId,
-      body.role,
-    );
+    return this.tenantsService.patchMember(supabaseUser, tenantId, membershipId, body);
   }
 
   @Delete(":tenantId/members/:membershipId")
