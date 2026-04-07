@@ -1,9 +1,13 @@
-import { Module } from "@nestjs/common";
+import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { APP_GUARD } from "@nestjs/core";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { AuthModule } from "./auth/auth.module";
+import { LoggingModule } from "./logging/logging.module";
+import { RequestLoggerMiddleware } from "./logging/request-logger.middleware";
 import { PrismaModule } from "./prisma/prisma.module";
+import { RateLimitGuard } from "./security/rate-limit.guard";
 import { TenantsModule } from "./tenants/tenants.module";
 
 @Module({
@@ -14,11 +18,22 @@ import { TenantsModule } from "./tenants/tenants.module";
       isGlobal: true,
       // Loads `apps/api/.env` when you run Nest from that workspace (npm cwd).
     }) as any,
+    LoggingModule,
     PrismaModule,
     AuthModule,
     TenantsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: RateLimitGuard,
+    },
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestLoggerMiddleware).forRoutes("*");
+  }
+}

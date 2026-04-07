@@ -9,10 +9,18 @@ import { createClient } from "@supabase/supabase-js";
 import type { Request } from "express";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
-export type RequestWithSupabaseUser = Request & { supabaseUser: SupabaseUser };
+export type RequestWithSupabaseUser = Request & {
+  supabaseUser: SupabaseUser;
+  currentTenantId?: string;
+};
 
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {
+  private readonly tokenCache = new Map<
+    string,
+    { user: SupabaseUser; expiresAt: number }
+  >();
+
   constructor(private readonly config: ConfigService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -29,7 +37,14 @@ export class SupabaseAuthGuard implements CanActivate {
     const url = this.config.get<string>("SUPABASE_URL");
     const anonKey = this.config.get<string>("SUPABASE_ANON_KEY");
     if (!url || !anonKey) {
-      throw new UnauthorizedException("Server auth is not configured");
+      throw new UnauthorizedException();
+    }
+
+    const now = Date.now();
+    const cached = this.tokenCache.get(token);
+    if (cached && cached.expiresAt > now) {
+      request.supabaseUser = cached.user;
+      return true;
     }
 
     const supabase = createClient(url, anonKey);
@@ -42,6 +57,10 @@ export class SupabaseAuthGuard implements CanActivate {
       throw new UnauthorizedException();
     }
 
+    this.tokenCache.set(token, {
+      user,
+      expiresAt: now + 30_000,
+    });
     request.supabaseUser = user;
     return true;
   }

@@ -14,6 +14,10 @@ import { FormError, FormSuccess } from "@/components/common/form-message";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+function getSafeLoginErrorMessage() {
+  return "Не вдалося надіслати посилання для входу. Спробуйте ще раз трохи пізніше.";
+}
+
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -37,7 +41,7 @@ export function LoginForm() {
     setPending(false);
 
     if (signError) {
-      setError(signError.message);
+      setError(getSafeLoginErrorMessage());
       return;
     }
 

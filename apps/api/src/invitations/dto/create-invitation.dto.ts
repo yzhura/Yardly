@@ -1,6 +1,6 @@
 import { OrganizationRole } from "@prisma/client";
 import { Transform } from "class-transformer";
-import { IsEmail, IsIn, IsString, MaxLength, MinLength } from "class-validator";
+import { IsEmail, IsIn, IsOptional, Matches, MaxLength } from "class-validator";
 
 export const INVITABLE_ROLES = [
   OrganizationRole.ADMIN,
@@ -9,13 +9,12 @@ export const INVITABLE_ROLES = [
 ] as const;
 
 export class CreateInvitationDto {
-  @IsString()
-  @MinLength(1)
-  @MaxLength(64)
+  @IsOptional()
+  @Matches(/^c[a-z0-9]{24}$/i)
   @Transform(({ value }: { value: unknown }) =>
     typeof value === "string" ? value.trim() : value,
   )
-  tenantId!: string;
+  tenantId?: string;
 
   @IsEmail()
   @MaxLength(254)

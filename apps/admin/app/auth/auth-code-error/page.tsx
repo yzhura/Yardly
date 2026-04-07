@@ -16,25 +16,8 @@ export default function AuthCodeErrorPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Помилка входу</CardTitle>
-          <CardDescription className="space-y-2">
-            <span className="block">
-              Не вдалося підтвердити посилання. Спробуйте увійти знову.
-            </span>
-            <span className="block text-xs">
-              Для запрошень у Redirect URLs має бути саме{" "}
-              <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
-                …/auth/callback
-              </code>
-              ; у API —{" "}
-              <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
-                ADMIN_ORIGIN
-              </code>{" "}
-              без шляху. Якщо в адресі після входу є{" "}
-              <code className="rounded bg-muted px-1 py-0.5 text-[11px]">
-                #access_token
-              </code>
-              , сторінка спробує перенаправити на callback автоматично.
-            </span>
+          <CardDescription>
+            Не вдалося підтвердити посилання. Спробуйте увійти ще раз.
           </CardDescription>
         </CardHeader>
         <CardContent>

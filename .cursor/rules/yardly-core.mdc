@@ -3,9 +3,9 @@ description: Yardly canonical project context — stack, security, code style, t
 alwaysApply: true
 ---
 
-# Yardly: Core Development Rules (v1.5)
+# Yardly: Core Development Rules (v1.6)
 
-**Cursor rules layout:** This file is the single always-on rule. Add other `.mdc` files under `.cursor/rules/` only for large, narrow topics (use explicit `globs`) so context is not duplicated.
+**Cursor rules layout:** This file is the single always-on rule. Add other `.mdc` files under `.cursor/rules/` only for large, narrow topics (use explicit `globs`) so context is not duplicated. API-specific security guardrails live in `.cursor/rules/yardly-api-security.mdc` (`apps/api/**`).
 
 ## Code Quality & Ownership
 - **Engineering standards:** DRY, SOLID, clean code. Prefer small modules, clear boundaries, and explicit naming. Write as a senior engineer would: predictable structure, minimal coupling, no clever one-offs.
@@ -82,6 +82,7 @@ function titleFor(a: A | null) {
   - `getServerAccessToken()` — Bearer token for Server Actions calling the API (same getUser → getSession order as `fetchAuthMe`).
   - `ACTIVE_TENANT_COOKIE` + `setActiveTenantCookie` / `clearActiveTenantCookie` — active organization id (httpOnly); do not hardcode the cookie name elsewhere.
 - **Ukrainian** copy on all user-facing pages (errors, buttons, descriptions).
+- **Safe error UX (admin):** User-facing error pages/forms must avoid raw backend/provider messages, stack traces, env names, internal URLs, or config hints. Show generic Ukrainian copy for users; keep technical details only in server logs/dev tooling.
 
 ## Multi-tenancy & Security
 - **Identity vs org:** `User` is global (linked to Supabase `auth_user_id`). `Membership` ties `userId` + `tenantId` + role. **Do not put a single `tenantId` on `User`.**
@@ -95,7 +96,7 @@ function titleFor(a: A | null) {
 
 ## API / Monorepo gotchas
 - **`AppModule`:** `ConfigModule.forRoot(... ) as any` works around duplicate `@nestjs/*` install paths under npm workspaces breaking `Promise<DynamicModule>` typing. Do not remove the cast unless the dependency tree is deduped (single `@nestjs/common` for compile + runtime).
-- **CORS:** `ADMIN_ORIGIN` must include the admin dev origin (e.g. `http://localhost:3000`).
+- **CORS:** `ADMIN_ORIGIN` must include the admin dev origin (e.g. `http://localhost:3000`). Use strict allowlist matching for origins; do not allow broad wildcard behavior with credentials.
 
 ## Tooling
 - **Database schema:** Use **`npm run db:migrate`** from the repo root for local dev (Prisma Migrate). Use **`npm run db:migrate:deploy`** in CI/production. Prefer a **direct** `DATABASE_URL` (port 5432) in `packages/database/.env` for migrations; pooler URLs can break `migrate dev`.

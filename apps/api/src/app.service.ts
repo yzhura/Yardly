@@ -8,9 +8,9 @@ export class AppService {
   async health() {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
-      return { status: "ok", database: "connected" as const };
+      return { status: "ok" as const };
     } catch {
-      return { status: "ok", database: "unavailable" as const };
+      return { status: "degraded" as const };
     }
   }
 }

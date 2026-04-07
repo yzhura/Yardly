@@ -4,13 +4,13 @@ import {
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
-  Logger,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import type { AuthError } from "@supabase/supabase-js";
 import { InvitationStatus, MembershipStatus, type User } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { JsonLoggerService } from "../logging/json-logger.service";
 import { SupabaseAdminService } from "../supabase/supabase-admin.service";
 import { UsersService } from "../users/users.service";
 import type { CreateInvitationDto } from "./dto/create-invitation.dto";
@@ -20,13 +20,12 @@ const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class InvitationsService {
-  private readonly logger = new Logger(InvitationsService.name);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
     private readonly config: ConfigService,
     private readonly supabaseAdmin: SupabaseAdminService,
+    private readonly logger: JsonLoggerService,
   ) {}
 
   private getAuthCallbackUrl(): string {
@@ -108,8 +107,15 @@ export class InvitationsService {
     }
   }
 
-  async create(supabaseUser: SupabaseUser, dto: CreateInvitationDto) {
-    const tenantId = dto.tenantId;
+  async create(
+    supabaseUser: SupabaseUser,
+    tenantId: string,
+    dto: CreateInvitationDto,
+  ) {
+    if (dto.tenantId && dto.tenantId !== tenantId) {
+      throw new BadRequestException("tenant_id_mismatch");
+    }
+
     const actor = await this.usersService.upsertFromSupabaseUser(supabaseUser);
     await this.assertCanInvite(actor.id, tenantId);
 
@@ -163,9 +169,7 @@ export class InvitationsService {
       await this.deliverAuthEmail(normalizedEmail);
     } catch (err) {
       await this.prisma.invitation.delete({ where: { id: invitation.id } });
-      this.logger.warn(
-        `Invite email failed for ${normalizedEmail}: ${err instanceof Error ? err.message : err}`,
-      );
+      this.logger.warn("Invite email delivery failed");
       throw err;
     }
 
@@ -204,9 +208,7 @@ export class InvitationsService {
     });
 
     if (otpError) {
-      this.logger.warn(
-        `Magic link fallback failed for ${email}: ${otpError.message}`,
-      );
+      this.logger.warn("Magic link fallback failed");
       throw new InternalServerErrorException("invite_email_failed");
     }
   }

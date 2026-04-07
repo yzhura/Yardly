@@ -1,0 +1,39 @@
+---
+description: Yardly API security and tenancy guardrails (NestJS)
+globs:
+  - apps/api/**
+alwaysApply: false
+---
+
+# Yardly API Security Rules (v1.0)
+
+## Tenant Context (mandatory)
+- For tenant-scoped endpoints, use centralized tenant extraction via guard + decorator (`CurrentTenantGuard` + `@CurrentTenant()`).
+- Do not scatter ad-hoc `tenantId` reads across controller/service code paths.
+- If tenant id is present in multiple places (header/param/body), reject mismatches (`tenant_id_mismatch`) and proceed only with one validated value.
+
+## Tenant and ID Validation
+- Current primary identifiers in this codebase are Prisma `cuid()` strings (not UUID).
+- Do not enforce UUID pipes/validators for `tenantId` / `membershipId` unless Prisma schema changes.
+- Validate tenant-scoped params/body early in controller/guard to fail fast on invalid ids.
+
+## Auth Guard Hardening
+- Return generic `Unauthorized` to clients; never expose internal configuration state in auth error messages.
+- Avoid expensive remote auth verification on every request when a safe short cache can reduce repeated lookups.
+- Keep sensitive auth details in internal logs only.
+
+## API Abuse Protection
+- Keep global API rate limiting enabled.
+- Apply stricter limits for abuse-prone routes (`/auth/me`, invitations, and similar endpoints).
+
+## CORS and Response Exposure
+- Use strict origin allowlist matching sourced from `ADMIN_ORIGIN`.
+- Avoid broad wildcard behavior with credentialed requests.
+- Keep public health/error responses minimal; do not expose infrastructure internals to end users.
+
+## Logging and UI-Facing Errors
+- Use centralized structured JSON logging in API (`JsonLoggerService`) with stable keys (timestamp, level, context, message).
+- Ensure request logging includes `x-request-id` (generate if missing) and return it in response headers for traceability.
+- Do not log raw PII or full upstream provider messages when avoidable.
+- Admin UI should not display raw backend/provider error text, stack traces, env keys, or internal URLs.
+- User-facing messages must remain generic, concise, and in Ukrainian.
