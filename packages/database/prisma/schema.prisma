@@ -25,6 +25,19 @@ enum InvitationStatus {
   CANCELLED
 }
 
+enum IntegrationProvider {
+  NOVA_POSHTA
+  CHECKBOX
+}
+
+enum IntegrationSecretKey {
+  NOVA_POSHTA_API_KEY
+  CHECKBOX_LICENCE_KEY
+  CHECKBOX_TEST_LICENCE_KEY
+  CHECKBOX_PINCODE
+  CHECKOX_TEST_PINCODE
+}
+
 /// Application user linked to Supabase Auth (`auth.users.id`).
 model User {
   id         String   @id @default(cuid())
@@ -41,13 +54,16 @@ model User {
 
 /// Root tenant (organization). Business data should reference tenantId.
 model Tenant {
-  id        String   @id @default(cuid())
-  name      String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                     String           @id @default(cuid())
+  name                   String
+  activeBusinessProfileId String?         @unique @map("active_business_profile_id")
+  createdAt              DateTime         @default(now()) @map("created_at")
+  updatedAt              DateTime         @updatedAt @map("updated_at")
 
-  memberships  Membership[]
-  invitations  Invitation[]
+  memberships          Membership[]
+  invitations          Invitation[]
+  businessProfiles     BusinessProfile[] @relation("TenantBusinessProfiles")
+  activeBusinessProfile BusinessProfile? @relation("TenantActiveBusinessProfile", fields: [activeBusinessProfileId], references: [id], onDelete: SetNull)
 
   @@map("tenants")
 }
@@ -87,4 +103,45 @@ model Invitation {
   @@index([email])
   @@index([tenantId])
   @@map("invitations")
+}
+
+/// Business profile (e.g. FOP legal entity) used for logistics/payment integrations.
+model BusinessProfile {
+  id                 String                  @id @default(cuid())
+  tenantId           String                  @map("tenant_id")
+  displayName        String                  @map("display_name")
+  legalName          String?                 @map("legal_name")
+  taxId              String?                 @map("tax_id")
+  registrationNumber String?                 @map("registration_number")
+  createdAt          DateTime                @default(now()) @map("created_at")
+  updatedAt          DateTime                @updatedAt @map("updated_at")
+
+  tenant        Tenant                   @relation("TenantBusinessProfiles", fields: [tenantId], references: [id], onDelete: Cascade)
+  activeForTenant Tenant?                @relation("TenantActiveBusinessProfile")
+  credentials   IntegrationCredential[]
+
+  @@index([tenantId])
+  @@map("business_profiles")
+}
+
+/// Encrypted integration secret for one provider under a business profile.
+model IntegrationCredential {
+  id                String              @id @default(cuid())
+  businessProfileId String              @map("business_profile_id")
+  provider          IntegrationProvider
+  keyName           IntegrationSecretKey @map("key_name")
+  encryptedValue    String              @map("encrypted_value")
+  iv                String              @map("iv")
+  authTag           String              @map("auth_tag")
+  keyVersion        Int                 @default(1) @map("key_version")
+  maskedValue       String              @map("masked_value")
+  label             String?             @map("label")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  businessProfile BusinessProfile @relation(fields: [businessProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([businessProfileId, provider, keyName])
+  @@index([provider])
+  @@map("integration_credentials")
 }

@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function SettingsPageSkeleton() {
   return (
     <div
-      className="mx-auto flex w-full max-w-3xl flex-col gap-6 sm:gap-8"
+      className="flex w-full flex-col gap-6 sm:gap-8"
       aria-busy="true"
       aria-label="Завантаження налаштувань"
     >
@@ -24,6 +24,16 @@ export function SettingsPageSkeleton() {
         <CardContent className="space-y-3">
           <Skeleton className="h-10 w-full max-w-xs rounded-md" aria-hidden />
           <Skeleton className="h-3 w-64 max-w-full" aria-hidden />
+        </CardContent>
+      </Card>
+      <Card className="border-border shadow-sm">
+        <CardHeader className="space-y-2">
+          <Skeleton className="h-6 w-56" aria-hidden />
+          <Skeleton className="h-4 w-full max-w-xl" aria-hidden />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Skeleton className="h-20 w-full rounded-lg" aria-hidden />
+          <Skeleton className="h-20 w-full rounded-lg" aria-hidden />
         </CardContent>
       </Card>
     </div>

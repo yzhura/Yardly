@@ -30,7 +30,6 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
         draggable
         theme="light"
         toastClassName="rounded-2xl border border-border/90 bg-background/95 shadow-xl backdrop-blur"
-        bodyClassName="text-sm text-foreground"
       />
     </QueryClientProvider>
   );

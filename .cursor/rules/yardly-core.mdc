@@ -3,7 +3,7 @@ description: Yardly canonical project context — stack, security, code style, t
 alwaysApply: true
 ---
 
-# Yardly: Core Development Rules (v1.6)
+# Yardly: Core Development Rules (v1.7)
 
 **Cursor rules layout:** This file is the single always-on rule. Add other `.mdc` files under `.cursor/rules/` only for large, narrow topics (use explicit `globs`) so context is not duplicated. API-specific security guardrails live in `.cursor/rules/yardly-api-security.mdc` (`apps/api/**`).
 
@@ -50,6 +50,9 @@ alwaysApply: true
 10. **Motion-first UI:** Use the `motion` package (`motion/react`) for interactive/admin UI animations. Prefer shared motion presets from `apps/admin/lib/motion.ts` (durations, easing, spring) over inline one-off values to keep a consistent product feel.
 11. **Mobile-first UI:** Build and validate layouts for smartphone widths first, then scale up with `sm`, `md`, `lg` breakpoints. Avoid desktop-only tables/controls on small screens without mitigation — use stacked/card layouts, or a **horizontally scrollable** table inside a bounded container so the page does not overflow sideways.
 12. **Readable control flow (TS/TSX):** Do not chain multiple levels of ternary operators in JSX or prop values. For several variants (copy, props), use a **`switch` on a discriminant** (e.g. `action.type`), a small **helper function** with explicit `returns`, or a **lookup map**. Avoid deep `if` nesting in JSX — extract a helper or a child component with early returns.
+13. **Single API path per capability:** In `apps/admin/app/api/**`, keep one canonical proxy route shape for each backend capability. When route params evolve (e.g. adding `:keyName`), remove obsolete sibling routes immediately to avoid split behavior and dead code.
+14. **Large component decomposition:** If a client component grows beyond ~350-400 lines, extract reusable subcomponents/config modules (forms, modal content, integration field maps) before adding new behavior. Keep orchestration in the parent and rendering primitives in children.
+15. **Async modal UX:** For modal submit flows, always disable submit/cancel and block backdrop/ESC close while request is pending. Prefer a single aggregated toast for batch operations (not one toast per field/item).
 
 ```tsx
 // Bad: nested ternaries in props

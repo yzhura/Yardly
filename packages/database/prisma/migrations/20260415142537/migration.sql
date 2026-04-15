@@ -1,0 +1,2 @@
+-- RenameIndex
+ALTER INDEX "integration_credentials_business_profile_id_provider_key_name_k" RENAME TO "integration_credentials_business_profile_id_provider_key_na_key";

@@ -4,6 +4,7 @@ import { APP_GUARD } from "@nestjs/core";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { AuthModule } from "./auth/auth.module";
+import { BusinessProfilesModule } from "./business-profiles/business-profiles.module";
 import { LoggingModule } from "./logging/logging.module";
 import { RequestLoggerMiddleware } from "./logging/request-logger.middleware";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -22,6 +23,7 @@ import { TenantsModule } from "./tenants/tenants.module";
     PrismaModule,
     AuthModule,
     TenantsModule,
+    BusinessProfilesModule,
   ],
   controllers: [AppController],
   providers: [
