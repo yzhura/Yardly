@@ -3,7 +3,7 @@ description: Yardly canonical project context — stack, security, code style, t
 alwaysApply: true
 ---
 
-# Yardly: Core Development Rules (v1.7)
+# Yardly: Core Development Rules (v1.8)
 
 **Cursor rules layout:** This file is the single always-on rule. Add other `.mdc` files under `.cursor/rules/` only for large, narrow topics (use explicit `globs`) so context is not duplicated. API-specific security guardrails live in `.cursor/rules/yardly-api-security.mdc` (`apps/api/**`).
 
@@ -35,7 +35,7 @@ alwaysApply: true
 - **Auth:** Supabase Auth (Magic Links only). Nest validates JWTs with **anon** key (`SUPABASE_ANON_KEY`), never `service_role` in the admin bundle. Employee invites use `SUPABASE_SERVICE_ROLE_KEY` **only** in `apps/api` (never in the browser bundle).
 - **Icons:** Lucide React.
 - **State Management:** TanStack Query (React Query), zustand.
-- **Forms (admin UI):** **React Hook Form** + **Yup** (`@hookform/resolvers/yup`) for interactive forms; reuse Shadcn `components/ui/form.tsx` + field components. Validation messages and repeated copy live under `apps/admin/constants/` (context-named files).
+- **Forms (admin UI):** **React Hook Form** + **Yup** (`@hookform/resolvers/yup`) for interactive forms; reuse Shadcn `components/ui/form.tsx` + field components. Validation messages and repeated copy live under `apps/admin/constants/` (context-named files). **Shadcn Form + `useFormField`:** `FormLabel`, `FormControl`, and `FormMessage` call `useFormField()` and MUST be used inside `<FormField>…</FormItem>` (see `components/ui/form.tsx`). For read-only or display-only values not in the RHF schema, use `Label` + `Input` from `components/ui/` (or layout without `FormLabel`/`FormControl`) instead of orphaning those primitives — otherwise you get a runtime `useFormField must be used within <FormField>` error.
 
 ## Coding Principles
 1. **No hardcoding:** Use configuration, env, or database-driven settings for statuses, categories, and business constants — not scattered magic strings in UI or services (align with domain enums / Prisma models when they exist).

@@ -28,11 +28,7 @@ export class AuthController {
     });
 
     return {
-      user: {
-        id: user.id,
-        authUserId: user.authUserId,
-        email: user.email,
-      },
+      user: await this.usersService.toAuthMeUserFields(user),
       memberships: memberships.map((m) => ({
         id: m.id,
         role: m.role,

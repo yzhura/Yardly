@@ -4,7 +4,19 @@ export type MembershipDto = {
   tenant: { id: string; name: string };
 };
 
+export type AuthMeUserDto = {
+  id: string;
+  authUserId: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  avatarUrl: string | null;
+  avatarPresetId: string | null;
+  displayName: string | null;
+  resolvedAvatarUrl: string | null;
+};
+
 export type AuthMeResponse = {
-  user: { id: string; authUserId: string; email: string | null };
+  user: AuthMeUserDto;
   memberships: MembershipDto[];
 };

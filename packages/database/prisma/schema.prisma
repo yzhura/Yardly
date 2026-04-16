@@ -43,6 +43,12 @@ model User {
   id         String   @id @default(cuid())
   authUserId String   @unique @map("auth_user_id")
   email      String?
+  firstName  String?  @map("first_name")
+  lastName   String?  @map("last_name")
+  /// User-uploaded avatar: HTTPS URL (legacy) or Storage object path (`avatars/{userId}/…`); UI usually resolves to public or signed Supabase URL.
+  avatarUrl       String? @map("avatar_url")
+  /// Preset id (`avatar_1`…`avatar_18`) for public Storage objects under `presets/avatars/`.
+  avatarPresetId  String? @map("avatar_preset_id")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 

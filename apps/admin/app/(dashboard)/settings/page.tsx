@@ -1,5 +1,9 @@
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { BusinessProfilesSettingsCard } from "@/components/settings/business-profiles-settings-card";
 import { ThemeSettingsCard } from "@/components/settings/theme-settings-card";
+import { Button } from "@/components/ui/button";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireActiveMembership } from "@/lib/require-active-membership";
 
 export default async function SettingsPage() {
@@ -17,6 +21,21 @@ export default async function SettingsPage() {
           Керуйте вашим виробництвом, інтеграціями та профілем бізнесу.
         </p>
       </div>
+
+      <Card className="border-border shadow-sm">
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="text-lg">Персональний профіль</CardTitle>
+            <CardDescription>Імʼя, прізвище та аватар для вашого облікового запису.</CardDescription>
+          </div>
+          <Button variant="outline" size="sm" className="shrink-0 gap-1" asChild>
+            <Link href="/settings/profile">
+              Відкрити
+              <ChevronRight className="h-4 w-4" aria-hidden />
+            </Link>
+          </Button>
+        </CardHeader>
+      </Card>
 
       <BusinessProfilesSettingsCard
         tenantId={activeMembership.tenant.id}
