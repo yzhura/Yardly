@@ -10,6 +10,9 @@ import { RequestLoggerMiddleware } from "./logging/request-logger.middleware";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RateLimitGuard } from "./security/rate-limit.guard";
 import { TenantsModule } from "./tenants/tenants.module";
+import { MaterialsModule } from "./materials/materials.module";
+import { ColorsModule } from "./colors/colors.module";
+import { AttributesModule } from "./attributes/attributes.module";
 
 @Module({
   imports: [
@@ -24,6 +27,9 @@ import { TenantsModule } from "./tenants/tenants.module";
     AuthModule,
     TenantsModule,
     BusinessProfilesModule,
+    MaterialsModule,
+    ColorsModule,
+    AttributesModule,
   ],
   controllers: [AppController],
   providers: [

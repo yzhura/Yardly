@@ -38,6 +38,12 @@ enum IntegrationSecretKey {
   CHECKOX_TEST_PINCODE
 }
 
+enum AttributeScope {
+  MATERIAL
+  PRODUCT
+  BOTH
+}
+
 /// Application user linked to Supabase Auth (`auth.users.id`).
 model User {
   id         String   @id @default(cuid())
@@ -70,6 +76,12 @@ model Tenant {
   invitations          Invitation[]
   businessProfiles     BusinessProfile[] @relation("TenantBusinessProfiles")
   activeBusinessProfile BusinessProfile? @relation("TenantActiveBusinessProfile", fields: [activeBusinessProfileId], references: [id], onDelete: SetNull)
+
+  materialCategories   MaterialCategory[]
+  materials            Material[]
+  colors               Color[]
+  attributeDefinitions AttributeDefinition[]
+  attributeValues      AttributeValue[]
 
   @@map("tenants")
 }
@@ -150,4 +162,109 @@ model IntegrationCredential {
   @@unique([businessProfileId, provider, keyName])
   @@index([provider])
   @@map("integration_credentials")
+}
+
+/// Category of materials within a tenant (e.g. fabric, trims).
+model MaterialCategory {
+  id         String   @id @default(cuid())
+  tenantId   String   @map("tenant_id")
+  name       String
+  isArchived Boolean  @default(false) @map("is_archived")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  materials Material[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("material_categories")
+}
+
+/// Brand color / swatch stored as a tenant-scoped master data.
+model Color {
+  id         String   @id @default(cuid())
+  tenantId   String   @map("tenant_id")
+  name       String
+  slug       String   @map("slug")
+  hex        String   @map("hex")
+  isArchived Boolean  @default(false) @map("is_archived")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  tenant   Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  materials Material[]
+
+  @@unique([tenantId, slug])
+  @@unique([tenantId, hex])
+  @@index([tenantId])
+  @@map("colors")
+}
+
+/// Inventory material tracked by quantity + reserved amount.
+model Material {
+  id              String            @id @default(cuid())
+  tenantId        String            @map("tenant_id")
+  categoryId      String            @map("category_id")
+  name            String
+  sku             String
+  colorId         String?           @map("color_id")
+  unit            String            @map("unit")
+  imagePath       String?           @map("image_path")
+  quantityTotal   Float             @default(0) @map("quantity_total")
+  quantityReserved Float            @default(0) @map("quantity_reserved")
+  minStock        Float             @default(0) @map("min_stock")
+  isArchived      Boolean           @default(false) @map("is_archived")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  tenant   Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category MaterialCategory  @relation(fields: [categoryId], references: [id])
+  color    Color?            @relation(fields: [colorId], references: [id])
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+  @@index([categoryId])
+  @@map("materials")
+}
+
+/// Configurable tenant-level attribute definition (e.g. size, cup size).
+model AttributeDefinition {
+  id         String         @id @default(cuid())
+  tenantId   String         @map("tenant_id")
+  name       String
+  slug       String         @map("slug")
+  scope      AttributeScope @default(BOTH)
+  isSystem   Boolean        @default(false) @map("is_system")
+  isArchived Boolean        @default(false) @map("is_archived")
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+
+  tenant Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  values AttributeValue[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("attribute_definitions")
+}
+
+/// Allowed value for tenant attribute definition.
+model AttributeValue {
+  id                   String   @id @default(cuid())
+  tenantId             String   @map("tenant_id")
+  attributeDefinitionId String   @map("attribute_definition_id")
+  name                 String
+  slug                 String   @map("slug")
+  sortIndex            Int      @default(0) @map("sort_index")
+  isArchived           Boolean  @default(false) @map("is_archived")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  attributeDefinition AttributeDefinition @relation(fields: [attributeDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([attributeDefinitionId, slug])
+  @@index([tenantId])
+  @@index([attributeDefinitionId])
+  @@map("attribute_values")
 }

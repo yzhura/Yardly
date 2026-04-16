@@ -3,7 +3,7 @@ description: Yardly canonical project context — stack, security, code style, t
 alwaysApply: true
 ---
 
-# Yardly: Core Development Rules (v1.8)
+# Yardly: Core Development Rules (v1.9)
 
 **Cursor rules layout:** This file is the single always-on rule. Add other `.mdc` files under `.cursor/rules/` only for large, narrow topics (use explicit `globs`) so context is not duplicated. API-specific security guardrails live in `.cursor/rules/yardly-api-security.mdc` (`apps/api/**`).
 
@@ -25,11 +25,11 @@ alwaysApply: true
     - **`providers/`** — React providers (theme, query).
     - **`common/`** — small **cross-cutting** widgets reused across routes (e.g. form success/error alerts, `ComingSoon`, logo) — **not** tied to one business domain.
     - **`team/`** — team feature module: member list view, invite form, table pieces, team-specific skeletons.
-    - **`settings/`** — settings screens (e.g. theme card) and settings route skeleton.
+    - **`settings/`** — settings screens (e.g. theme card), **`settings-page-skeleton.tsx`**, and **`app/(dashboard)/settings/loading.tsx`**.
     - **`auth/`** — auth-only UI helpers and auth loading card skeleton.
     - **`organization/`** — select-organization / setup-tenant flows, shared full-screen card layout for those routes, org-related skeletons.
     - **`skeletons/`** — **only** shared skeleton **composition** helpers (`skeleton-blocks.tsx` and similar if added). **Domain screens** keep their own `*-skeleton.tsx` next to the feature (`team/`, `auth/`, etc.).
-    - **New domains** (e.g. orders, materials): add `components/<domain>/` and colocate that feature’s components + skeletons there; keep `app/` route files thin (`page.tsx` imports from `@/components/<domain>/…`).
+    - **New domains** (e.g. orders, materials): add `components/<domain>/` and colocate that feature’s components + skeletons there; keep `app/` route files thin (`page.tsx` imports from `@/components/<domain>/…`). For materials-style pages, use **`*-page-skeleton.tsx`** in the domain folder plus **`app/(dashboard)/<segment>/loading.tsx`** importing it (see `materials-page-skeleton.tsx`).
   - `/apps/api`: NestJS (modular architecture).
   - `/packages/database`: Prisma ORM + Supabase (PostgreSQL).
 - **Auth:** Supabase Auth (Magic Links only). Nest validates JWTs with **anon** key (`SUPABASE_ANON_KEY`), never `service_role` in the admin bundle. Employee invites use `SUPABASE_SERVICE_ROLE_KEY` **only** in `apps/api` (never in the browser bundle).
@@ -43,7 +43,7 @@ alwaysApply: true
 3. **Modular NestJS:** Follow **Module → Service → Controller**. Put business logic in **Services**; Controllers stay thin (validation, auth guards, mapping to HTTP).
 4. **Don't break, extend:** Before changing shared behavior, trace callers and tenant/auth impact; extend with new methods or optional fields rather than silent breaking changes unless coordinated.
 5. **Clean UI (Shadcn):** Compose screens from **Shadcn UI** in `apps/admin/components/ui/`. Place **feature-level** views and forms in the appropriate **domain folder** (see **Admin `components/` layout** under Tech Stack), not in `components/` root. Keep screens composable and small; do **not** default to raw `<select>`, unstyled inputs, or one-off class soup when a Shadcn primitive exists or can be added (e.g. run `npx shadcn@latest add select`). Prefer **RHF + Yup** for client forms; for legacy Server Actions that still use `FormData`, use Shadcn `Select` with a hidden `<input name="…" />` mirroring the value, or a small client subcomponent — don't fall back to unstyled native controls for convenience.
-6. **Loading / skeletons:** Use Shadcn `Skeleton` (`components/ui/skeleton.tsx`) and shared blocks from `components/skeletons/skeleton-blocks.tsx`. Place domain-specific skeleton files in the **same folder as the feature** (see **Admin `components/` layout** above). Placeholders must **match the real layout** (cards, tables, stats). Use route-level `loading.tsx` where the App Router segment can suspend; for TanStack Query, show skeleton UI when `isLoading` (or equivalent) instead of only static copy. **Do not nest block-level skeletons inside heading elements** (`CardTitle` renders `<h3>`) — use a `div` with the same typography classes or keep skeletons in non-heading wrappers. Prefer `aria-busy` and a concise `aria-label` on the loading region when it improves assistive-tech context.
+6. **Loading / skeletons:** Use Shadcn `Skeleton` (`components/ui/skeleton.tsx`) and shared blocks from `components/skeletons/skeleton-blocks.tsx`. Place domain-specific skeleton files in the **same folder as the feature** (see **Admin `components/` layout** above). Placeholders must **match the real layout** (cards, tables, stats). Use route-level **`loading.tsx`** where the App Router segment can suspend (e.g. while `requireActiveMembership` resolves); prefer a dedicated **`*-page-skeleton.tsx`** in the domain folder imported by that `loading.tsx`. For TanStack Query–driven regions, show skeleton UI when `isLoading` (or equivalent) instead of only static copy. **Do not nest block-level skeletons inside heading elements** (`CardTitle` renders `<h3>`) — use a `div` with the same typography classes or keep skeletons in non-heading wrappers. Prefer `aria-busy` and a concise `aria-label` on the loading region when it improves assistive-tech context.
 7. **Client API layer:** Add a single **Axios instance** (e.g. `apps/admin/api/client.ts`) wired to `NEXT_PUBLIC_API_URL`, with interceptors for `Authorization: Bearer <access_token>` when calling Nest from the browser. Custom hooks wrap mutations/queries around that instance. Never send `service_role` or other secrets from the admin bundle.
 8. **Database:** Prisma is the ORM; **always ship schema changes as Prisma migrations** in normal dev (see **Tooling** — use `db:migrate`, not `db:push`, unless explicitly troubleshooting).
 9. **Destructive/critical actions UX:** Reuse a shared confirmation component (e.g. `components/ui/confirm-modal.tsx`) instead of inline `window.confirm`. Execute the actual mutation only after explicit user confirmation. For async feedback, use `toast.promise(...)` with consistent pending/success/error copy.
@@ -53,6 +53,9 @@ alwaysApply: true
 13. **Single API path per capability:** In `apps/admin/app/api/**`, keep one canonical proxy route shape for each backend capability. When route params evolve (e.g. adding `:keyName`), remove obsolete sibling routes immediately to avoid split behavior and dead code.
 14. **Large component decomposition:** If a client component grows beyond ~350-400 lines, extract reusable subcomponents/config modules (forms, modal content, integration field maps) before adding new behavior. Keep orchestration in the parent and rendering primitives in children.
 15. **Async modal UX:** For modal submit flows, always disable submit/cancel and block backdrop/ESC close while request is pending. Prefer a single aggregated toast for batch operations (not one toast per field/item).
+16. **Admin API proxy errors (`apps/admin/lib/api-proxy-error.ts`):** When proxying Nest, handle `message` as a **string array** (typical `ValidationPipe` output) with stable Ukrainian copy and a dedicated code (e.g. `validation_failed`); do not treat Nest’s generic `"Bad Request"` as the primary `code` when validation messages are present. Map known business exception **string** `message` values via `ERROR_MESSAGE_MAP`.
+17. **Modal overlays (client):** Full-screen dialogs should use **`createPortal(..., document.body)`** with a high `z-index` backdrop (e.g. `z-[120]`). **Shadcn `SelectContent` inside those overlays** needs a **higher z-index** (e.g. `className="z-[130]"`) so the dropdown paints above the dimmed backdrop.
+18. **Hidden `<input type="file">`:** Do not wrap a visually hidden file input in `<label>` around a **`<Button type="button">`** as the only trigger — the button receives the click and the file picker may never open. Use **`useRef`** on the input and **`onClick={() => ref.current?.click()}`** on the button; reset `input.value` in `onChange` after handling if selecting the **same** file again must re-fire `onChange`.
 
 ```tsx
 // Bad: nested ternaries in props
@@ -76,7 +79,7 @@ function titleFor(a: A | null) {
 - **Consistency:** Reuse shared presets (`MOTION_DURATION`, `MOTION_EASE`, `APPLE_SPRING`, reveal variants) from `apps/admin/lib/motion.ts`; avoid hardcoded animation numbers in page/component files.
 - **Subtle interactions:** Buttons, cards, sidebar items, dropdowns, and dialogs should have restrained micro-interactions (small translate/scale/opacity changes), never aggressive bounce or long theatrical animation.
 - **Page/surface transitions:** Dashboard pages and major surfaces should use soft reveal transitions (opacity + slight y/blur), with quick timing and no blocking of user input.
-- **Dialogs/overlays:** Use `AnimatePresence` for enter/exit; animate both backdrop and content. Keep motion responsive to state changes and avoid visual jank.
+- **Dialogs/overlays:** Use `AnimatePresence` for enter/exit; animate both backdrop and content. Keep motion responsive to state changes and avoid visual jank. Reuse a small shared shell (e.g. `AttributeModalShell`) when multiple modals duplicate the same backdrop + panel motion.
 - **Accessibility/perf:** Animations must not reduce readability or usability; keep duration short and transitions smooth. Prefer transform/opacity-based animation to reduce layout thrashing.
 
 ## Admin App — Auth & Session (conventions)
@@ -98,6 +101,7 @@ function titleFor(a: A | null) {
 - **Inventory:** `Material.quantityReserved` increases on Order creation; `quantityTotal` decreases only on actual shipment/usage.
 
 ## API / Monorepo gotchas
+- **Material units (Nest + admin):** Canonical allowed units for DTOs live in **`apps/api/src/materials/dto/material-dto-helpers.ts`** (`MATERIAL_ALLOWED_UNITS`). Keep them **aligned with admin `UNIT_OPTIONS`** (Ukrainian labels). The shared `transformMaterialUnit` maps legacy Latin **`m`** → **`м`** before `@IsIn` validation.
 - **`AppModule`:** `ConfigModule.forRoot(... ) as any` works around duplicate `@nestjs/*` install paths under npm workspaces breaking `Promise<DynamicModule>` typing. Do not remove the cast unless the dependency tree is deduped (single `@nestjs/common` for compile + runtime).
 - **CORS:** `ADMIN_ORIGIN` must include the admin dev origin (e.g. `http://localhost:3000`). Use strict allowlist matching for origins; do not allow broad wildcard behavior with credentials.
 

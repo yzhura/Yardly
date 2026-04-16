@@ -2,7 +2,7 @@
 
 ## Where the rules live
 
-- **Cursor (primary):** [`.cursor/rules/yardly-core.mdc`](.cursor/rules/yardly-core.mdc) — `alwaysApply: true`; stack, tenancy, security, admin patterns, tooling, and code-style expectations.
+- **Cursor (primary):** [`.cursor/rules/yardly-core.mdc`](.cursor/rules/yardly-core.mdc) — `alwaysApply: true`; stack, tenancy, security, admin patterns (incl. Nest proxy validation shaping, modal/`Select` z-index, hidden file input + button, `*-page-skeleton` + route `loading.tsx`, materials unit DTO helper), tooling, and code-style expectations.
 - **Legacy pointer:** [`.cursorrules`](.cursorrules) — redirects to the paths above.
 
 Read `yardly-core.mdc` before substantial changes to `apps/admin`, `apps/api`, or `packages/database`.

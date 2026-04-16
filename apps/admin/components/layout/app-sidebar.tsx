@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
-import { LogOut, Package } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, LogOut, Package } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { signOut } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,23 @@ function navItemActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function navChildrenActive(pathname: string, children: Array<{ href: string }>) {
+  return children.some((child) => navItemActive(pathname, child.href));
+}
+
 export function AppSidebar() {
   const pathname = usePathname();
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const nextOpen: Record<string, boolean> = {};
+    for (const item of DASHBOARD_NAV_MAIN) {
+      if (item.children?.length) {
+        nextOpen[item.href] = navChildrenActive(pathname, item.children);
+      }
+    }
+    setOpenSections((prev) => ({ ...nextOpen, ...prev }));
+  }, [pathname]);
 
   return (
     <motion.aside
@@ -52,8 +67,11 @@ export function AppSidebar() {
 
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
         {DASHBOARD_NAV_MAIN.map((item) => {
-          const active = navItemActive(pathname, item.href);
+          const childActive = item.children?.length ? navChildrenActive(pathname, item.children) : false;
+          const active = navItemActive(pathname, item.href) || childActive;
           const Icon = item.icon;
+          const hasChildren = Boolean(item.children?.length);
+          const sectionOpen = hasChildren ? Boolean(openSections[item.href]) : false;
           return (
             <motion.div
               key={item.href}
@@ -63,29 +81,82 @@ export function AppSidebar() {
               whileHover={{ x: 2 }}
               whileTap={{ scale: 0.995 }}
             >
-              <Link
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
-                  active
-                    ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.16)]"
-                    : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
-                )}
-              >
-                <Icon
+              {hasChildren ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenSections((prev) => ({ ...prev, [item.href]: !Boolean(prev[item.href]) }))
+                    }
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
+                      active
+                        ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.16)]"
+                        : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                    )}
+                  >
+                    <Icon
+                      className={cn(
+                        "h-5 w-5 shrink-0 transition-colors duration-200",
+                        active ? "text-primary" : "text-muted-foreground",
+                      )}
+                      aria-hidden
+                    />
+                    <span className="flex-1 truncate text-left">{item.label}</span>
+                    <ChevronDown
+                      className={cn("h-4 w-4 transition-transform", sectionOpen ? "rotate-180" : "rotate-0")}
+                      aria-hidden
+                    />
+                  </button>
+                  {sectionOpen ? (
+                    <div className="mt-1 space-y-1 pl-10">
+                      {item.children?.map((child) => {
+                        const childIsActive = navItemActive(pathname, child.href);
+                        const ChildIcon = child.icon;
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            className={cn(
+                              "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
+                              childIsActive
+                                ? "bg-primary/10 text-primary"
+                                : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                            )}
+                          >
+                            <ChildIcon className="h-4 w-4 shrink-0" aria-hidden />
+                            {child.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <Link
+                  href={item.href}
                   className={cn(
-                    "h-5 w-5 shrink-0 transition-colors duration-200",
-                    active ? "text-primary" : "text-muted-foreground",
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
+                    active
+                      ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.16)]"
+                      : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
                   )}
-                  aria-hidden
-                />
-                <span className="flex-1 truncate">{item.label}</span>
-                {item.badge != null && item.badge > 0 ? (
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground">
-                    {item.badge > 99 ? "99+" : item.badge}
-                  </span>
-                ) : null}
-              </Link>
+                >
+                  <Icon
+                    className={cn(
+                      "h-5 w-5 shrink-0 transition-colors duration-200",
+                      active ? "text-primary" : "text-muted-foreground",
+                    )}
+                    aria-hidden
+                  />
+                  <span className="flex-1 truncate">{item.label}</span>
+                  {item.badge != null && item.badge > 0 ? (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-primary px-1.5 text-[11px] font-semibold text-primary-foreground">
+                      {item.badge > 99 ? "99+" : item.badge}
+                    </span>
+                  ) : null}
+                </Link>
+              )}
             </motion.div>
           );
         })}
@@ -119,6 +190,18 @@ export function MobileNavDrawer({
   tenantName,
 }: MobileNavDrawerProps) {
   const pathname = usePathname();
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const nextOpen: Record<string, boolean> = {};
+    for (const item of DASHBOARD_NAV_MAIN) {
+      if (item.children?.length) {
+        nextOpen[item.href] = navChildrenActive(pathname, item.children);
+      }
+    }
+    setOpenSections((prev) => ({ ...nextOpen, ...prev }));
+  }, [pathname]);
+
   useEffect(() => {
     if (!open) {
       return;
@@ -189,29 +272,89 @@ export function MobileNavDrawer({
 
             <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
               {DASHBOARD_NAV_MAIN.map((item) => {
-                const active = navItemActive(pathname, item.href);
+                const childActive = item.children?.length ? navChildrenActive(pathname, item.children) : false;
+                const active = navItemActive(pathname, item.href) || childActive;
                 const Icon = item.icon;
+                const hasChildren = Boolean(item.children?.length);
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={onClose}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
-                      active
-                        ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.16)]"
-                        : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                  <div key={item.href} className="space-y-1">
+                    {hasChildren ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenSections((prev) => ({ ...prev, [item.href]: !Boolean(prev[item.href]) }))
+                          }
+                          className={cn(
+                            "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
+                            active
+                              ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.16)]"
+                              : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                          )}
+                        >
+                          <Icon
+                            className={cn(
+                              "h-5 w-5 shrink-0 transition-colors duration-200",
+                              active ? "text-primary" : "text-muted-foreground",
+                            )}
+                            aria-hidden
+                          />
+                          <span className="flex-1 truncate text-left">{item.label}</span>
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 transition-transform",
+                              openSections[item.href] ? "rotate-180" : "rotate-0",
+                            )}
+                            aria-hidden
+                          />
+                        </button>
+                        {openSections[item.href] ? (
+                          <div className="pl-10">
+                            {item.children?.map((child) => {
+                              const childIsActive = navItemActive(pathname, child.href);
+                              const ChildIcon = child.icon;
+                              return (
+                                <Link
+                                  key={child.href}
+                                  href={child.href}
+                                  onClick={onClose}
+                                  className={cn(
+                                    "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
+                                    childIsActive
+                                      ? "bg-primary/10 text-primary"
+                                      : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                                  )}
+                                >
+                                  <ChildIcon className="h-4 w-4 shrink-0" aria-hidden />
+                                  {child.label}
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        ) : null}
+                      </>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        onClick={onClose}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
+                          active
+                            ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.16)]"
+                            : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                        )}
+                      >
+                        <Icon
+                          className={cn(
+                            "h-5 w-5 shrink-0 transition-colors duration-200",
+                            active ? "text-primary" : "text-muted-foreground",
+                          )}
+                          aria-hidden
+                        />
+                        <span className="flex-1 truncate">{item.label}</span>
+                      </Link>
                     )}
-                  >
-                    <Icon
-                      className={cn(
-                        "h-5 w-5 shrink-0 transition-colors duration-200",
-                        active ? "text-primary" : "text-muted-foreground",
-                      )}
-                      aria-hidden
-                    />
-                    <span className="flex-1 truncate">{item.label}</span>
-                  </Link>
+                  </div>
                 );
               })}
             </nav>

@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { MembershipStatus, OrganizationRole } from "@prisma/client";
+import { AttributeScope, MembershipStatus, OrganizationRole } from "@prisma/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { PrismaService } from "../prisma/prisma.service";
 import { UsersService } from "../users/users.service";
@@ -21,6 +21,24 @@ export class TenantsService {
 
     return this.prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.create({ data: { name } });
+      const sizeDefinition = await tx.attributeDefinition.create({
+        data: {
+          tenantId: tenant.id,
+          name: "Розмір",
+          slug: "size",
+          scope: AttributeScope.BOTH,
+          isSystem: true,
+        },
+      });
+      await tx.attributeValue.createMany({
+        data: [
+          { tenantId: tenant.id, attributeDefinitionId: sizeDefinition.id, name: "XS", slug: "xs", sortIndex: 10 },
+          { tenantId: tenant.id, attributeDefinitionId: sizeDefinition.id, name: "S", slug: "s", sortIndex: 20 },
+          { tenantId: tenant.id, attributeDefinitionId: sizeDefinition.id, name: "M", slug: "m", sortIndex: 30 },
+          { tenantId: tenant.id, attributeDefinitionId: sizeDefinition.id, name: "L", slug: "l", sortIndex: 40 },
+          { tenantId: tenant.id, attributeDefinitionId: sizeDefinition.id, name: "XL", slug: "xl", sortIndex: 50 },
+        ],
+      });
       const membership = await tx.membership.create({
         data: {
           userId: user.id,

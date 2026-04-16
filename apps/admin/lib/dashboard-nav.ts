@@ -2,8 +2,10 @@ import type { LucideIcon } from "lucide-react";
 import {
   Factory,
   LayoutDashboard,
+  List,
   Package,
   Settings,
+  SlidersHorizontal,
   ShoppingCart,
   Users,
   Warehouse,
@@ -15,12 +17,25 @@ export type DashboardNavItem = {
   icon: LucideIcon;
   /** Optional badge (e.g. pending count) */
   badge?: number;
+  children?: Array<{
+    href: string;
+    label: string;
+    icon: LucideIcon;
+  }>;
 };
 
 export const DASHBOARD_NAV_MAIN: DashboardNavItem[] = [
   { href: "/", label: "Дашборд", icon: LayoutDashboard },
   { href: "/orders", label: "Замовлення", icon: ShoppingCart },
-  { href: "/products", label: "Товари", icon: Package },
+  {
+    href: "/products",
+    label: "Товари",
+    icon: Package,
+    children: [
+      { href: "/products", label: "Список товарів", icon: List },
+      { href: "/attributes", label: "Атрибути", icon: SlidersHorizontal },
+    ],
+  },
   { href: "/materials", label: "Склад матеріалів", icon: Warehouse },
   { href: "/production", label: "Виробництво", icon: Factory },
   { href: "/team", label: "Користувачі", icon: Users },
