@@ -5,6 +5,8 @@ export type TenantMemberRow = {
   id: string;
   role: TenantMemberRole;
   status: TenantMemberStatus;
+  /** Lowercase unique @handle within the tenant. */
+  handle: string;
   createdAt: string;
   user: {
     id: string;

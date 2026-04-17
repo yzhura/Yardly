@@ -5,12 +5,13 @@ globs:
 alwaysApply: false
 ---
 
-# Yardly API Security Rules (v1.0)
+# Yardly API Security Rules (v1.1)
 
 ## Tenant Context (mandatory)
 - For tenant-scoped endpoints, use centralized tenant extraction via guard + decorator (`CurrentTenantGuard` + `@CurrentTenant()`).
 - Do not scatter ad-hoc `tenantId` reads across controller/service code paths.
 - If tenant id is present in multiple places (header/param/body), reject mismatches (`tenant_id_mismatch`) and proceed only with one validated value.
+- **Optional tenant header (documented exception):** User-scoped routes such as **`GET/PATCH /users/me/profile`** may accept an optional **`X-Tenant-Id`** for org-specific fields (`tenantPersona`, `tenantHandle`). Use **`isTenantCuid()`** from **`apps/api/src/tenancy/tenant-cuid.ts`** (same rules as **`CurrentTenantGuard`**); never trust a raw header string without the same validation.
 
 ## Tenant and ID Validation
 - Current primary identifiers in this codebase are Prisma `cuid()` strings (not UUID).

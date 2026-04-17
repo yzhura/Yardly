@@ -5,8 +5,7 @@ import {
   Injectable,
 } from "@nestjs/common";
 import type { RequestWithSupabaseUser } from "../auth/supabase-auth.guard";
-
-const CUID_REGEX = /^c[a-z0-9]{24}$/i;
+import { isTenantCuid } from "./tenant-cuid";
 
 function getTenantIdValue(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
@@ -31,7 +30,7 @@ export class CurrentTenantGuard implements CanActivate {
     }
 
     const tenantId = uniqueValues[0];
-    if (!CUID_REGEX.test(tenantId)) {
+    if (!isTenantCuid(tenantId)) {
       throw new BadRequestException("invalid_tenant_id");
     }
 

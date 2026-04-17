@@ -7,6 +7,13 @@ const ERROR_MESSAGE_MAP: Record<string, string> = {
   // Auth / membership
   not_a_member_of_tenant: "Ви не є учасником цієї організації.",
   membership_deactivated: "Ваш доступ до організації деактивовано.",
+  membership_handle_taken: "Цей псевдонім (@handle) уже зайнятий в організації.",
+  invalid_membership_handle: "Некоректний формат псевдоніма (@handle).",
+  tenant_id_required_for_handle:
+    "Оберіть активну організацію або оновіть сторінку та спробуйте ще раз.",
+  cannot_update_handle_of_deactivated_member:
+    "Неможливо змінити псевдонім для деактивованого доступу.",
+  cannot_change_other_member_handle: "Можна змінювати лише свій псевдонім.",
   insufficient_role_to_manage_materials: "У вас немає прав для керування матеріалами.",
   insufficient_role_to_manage_colors: "У вас немає прав для керування кольорами.",
   insufficient_role_to_manage_attributes: "У вас немає прав для керування характеристиками.",

@@ -95,6 +95,8 @@ model Membership {
   tenantId  String           @map("tenant_id")
   role      OrganizationRole
   status    MembershipStatus @default(ACTIVE)
+  /// Lowercase unique handle within the tenant for @mentions (always set; auto-assigned on join).
+  handle    String
   createdAt DateTime         @default(now()) @map("created_at")
   updatedAt DateTime         @updatedAt @map("updated_at")
 
@@ -102,6 +104,7 @@ model Membership {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([userId, tenantId])
+  @@unique([tenantId, handle])
   @@map("memberships")
 }
 

@@ -1,5 +1,18 @@
 import { Transform } from "class-transformer";
-import { IsIn, IsOptional, IsString, MaxLength, ValidateIf } from "class-validator";
+import {
+  IsIn,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+  ValidateIf,
+} from "class-validator";
+import {
+  MEMBERSHIP_HANDLE_INPUT_REGEX,
+  MEMBERSHIP_HANDLE_MAX_LENGTH,
+  MEMBERSHIP_HANDLE_MIN_LENGTH,
+} from "../../tenants/membership-handle.constants";
 import { USER_AVATAR_PRESET_IDS } from "../user-avatar-presets";
 
 const presetList = [...USER_AVATAR_PRESET_IDS];
@@ -49,4 +62,18 @@ export class UpdateUserProfileDto {
   @IsString()
   @IsIn(presetList)
   avatarPresetId?: string | null;
+
+  /**
+   * `@handle` for the active organization (requires `X-Tenant-Id` on the request).
+   */
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === "string" ? value.trim() : value))
+  @ValidateIf((_, v) => v !== undefined)
+  @IsString()
+  @MinLength(MEMBERSHIP_HANDLE_MIN_LENGTH)
+  @MaxLength(MEMBERSHIP_HANDLE_MAX_LENGTH)
+  @Matches(MEMBERSHIP_HANDLE_INPUT_REGEX, {
+    message: "invalid_membership_handle",
+  })
+  tenantHandle?: string;
 }

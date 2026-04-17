@@ -32,6 +32,7 @@ export class AuthController {
       memberships: memberships.map((m) => ({
         id: m.id,
         role: m.role,
+        handle: m.handle,
         tenant: { id: m.tenant.id, name: m.tenant.name },
       })),
     };

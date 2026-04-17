@@ -1,0 +1,53 @@
+---
+description: Yardly admin SaaS UX — clarity, discoverability, Apple/Google-like polish
+globs: apps/admin/**/*.{tsx,ts,css}
+alwaysApply: false
+---
+
+# Yardly Admin — Product UX (SaaS)
+
+**Goal:** The product should feel trustworthy, calm, and **immediately understandable** — users always know *where they are*, *what they can do next*, and *what just happened*. Polish like **Apple** (restraint, hierarchy, motion) and **Google** (plain language, predictable patterns, accessibility).
+
+**Stack alignment:** Ukrainian copy, Shadcn primitives, motion presets from `apps/admin/lib/motion.ts`, loading/skeleton and error patterns from `yardly-core.mdc` — this file adds **product-level** UX expectations, not duplicate stack rules.
+
+## Clarity & wayfinding
+- **Page intent:** Every screen has a clear primary purpose — title + short description or context line when it helps first-time use; avoid mystery pages.
+- **Hierarchy:** One visual focal point (primary action or key data); secondary actions stay visually quieter. Avoid competing “primary” buttons.
+- **Navigation:** Active section in sidebar/header matches current route; breadcrumbs or back affordances where depth > 1 and users might feel lost.
+- **Labels over icons:** Icons support text; do not rely on icon-only controls for critical actions unless `aria-label` / tooltip is complete and discoverable.
+
+## Discoverability (“how do I use this?”)
+- **Empty states:** Never a blank table/card — short explanation, one suggested next step, and a primary CTA when applicable.
+- **First use / dense screens:** Inline hints, helper text under fields, or a single collapsible “Довідка” block — not walls of text; remove or shorten once the flow is obvious.
+- **Destructive / irreversible:** Explicit confirmation; summarize *what* will change. Reuse shared confirm modal + toasts per core rules.
+- **Permissions / read-only:** If the user cannot act, say why and what to do (e.g. contact admin) — not a silent disabled control.
+
+## Forms & data entry
+- **Progressive disclosure:** Show only fields needed for the step; advanced options collapsed or on a secondary panel.
+- **Validation:** Errors next to fields + summary for long forms; preserve user input on failure. Submit disabled only while **valid** request is in flight — not as a substitute for validation copy.
+- **Units & domain values:** Human-readable Ukrainian labels; technical codes hidden unless power users need them.
+
+## Feedback & system status
+- **Loading:** Skeletons or inline spinners that match layout; prefer `aria-busy` + concise `aria-label` on loading regions.
+- **Success:** Obvious completion — toast, inline success, or navigation to the updated context; align with existing toast patterns.
+- **Errors:** Friendly Ukrainian message + recovery (retry, fix field, go back); never raw API keys, stack traces, or English-only dev errors to end users.
+
+## Visual & layout discipline
+- **Whitespace & rhythm:** Consistent spacing scale (Tailwind); avoid cramped tables and arbitrary gaps; align baselines in forms and toolbars.
+- **Density:** Information-dense views (tables, filters) still breathe — use row height, zebra/hover, and truncation with expand/tooltip where needed.
+- **Responsive:** Mobile-first; no horizontal page scroll at small widths; tables scroll inside a bounded container or become cards — see core rules.
+
+## Motion & delight
+- **Subtle by default:** Micro-interactions support understanding (hover, focus, reorder), not decoration. Use shared motion tokens; no long or bouncy animations.
+- **Purpose:** Motion draws attention to state changes (open modal, new row, saved) — not to novelty.
+
+## Accessibility & inclusiveness
+- **Keyboard:** Logical tab order; focus visible; modals trap focus and restore on close.
+- **Touch targets:** Adequate hit area on mobile; do not rely on tiny icons alone.
+- **Contrast:** Readable text and states (disabled, error) meet sensible contrast; do not mute errors into illegibility.
+
+## Consistency
+- **Patterns over novelty:** Reuse existing page shells, tables, filters, and modals — users learn once. New patterns need a stronger justification than “different layout here.”
+- **Terminology:** Same concept → same Ukrainian term across the app (orders, materials, tenant, etc.).
+
+When adding a new flow, ask: **Would a tired user on a phone understand this in 5 seconds?** If not, simplify hierarchy, copy, or progressive disclosure before adding features.

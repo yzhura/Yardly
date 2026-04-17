@@ -1,6 +1,12 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import type { Prisma, User as PrismaUser } from "@prisma/client";
+import { MembershipStatus, Prisma, type User as PrismaUser } from "@prisma/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { randomUUID } from "crypto";
 import { buildSupabaseStoragePublicUrl } from "../lib/supabase-storage-public-url";
@@ -9,6 +15,8 @@ import { SupabaseAdminService } from "../supabase/supabase-admin.service";
 import type { UpdateUserProfileDto } from "./dto/update-user-profile.dto";
 import { isHttpAvatarReference } from "../lib/avatar-url";
 import { buildPresetAvatarPublicUrl, resolveUserDisplayName } from "./user-profile.utils";
+import { isTenantCuid } from "../tenancy/tenant-cuid";
+import { normalizeAndValidateMembershipHandle } from "../tenants/membership-handle.utils";
 
 const MIME_TO_EXT: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -37,12 +45,36 @@ export class UsersService {
     });
   }
 
-  async getProfile(supabaseUser: SupabaseUser) {
+  async getProfile(supabaseUser: SupabaseUser, tenantId: string | null) {
     const user = await this.upsertFromSupabaseUser(supabaseUser);
-    return this.toProfileResponse(user);
+    const base = await this.buildPublicProfileFields(user);
+    if (tenantId === null || tenantId === undefined || !isTenantCuid(tenantId)) {
+      return { ...base, tenantPersona: null };
+    }
+    const activeTenantId = tenantId.trim();
+    const membership = await this.prisma.membership.findUnique({
+      where: { userId_tenantId: { userId: user.id, tenantId: activeTenantId } },
+      include: { tenant: { select: { id: true, name: true } } },
+    });
+    if (!membership) {
+      return { ...base, tenantPersona: null };
+    }
+    return {
+      ...base,
+      tenantPersona: {
+        tenantId: membership.tenantId,
+        membershipId: membership.id,
+        tenantName: membership.tenant.name,
+        handle: membership.handle,
+      },
+    };
   }
 
-  async updateProfile(supabaseUser: SupabaseUser, dto: UpdateUserProfileDto) {
+  async updateProfile(
+    supabaseUser: SupabaseUser,
+    dto: UpdateUserProfileDto,
+    tenantId: string | null,
+  ) {
     const user = await this.upsertFromSupabaseUser(supabaseUser);
     const data: Prisma.UserUpdateInput = {};
 
@@ -54,11 +86,45 @@ export class UsersService {
     }
     this.applyAvatarFieldsToUpdate(user.id, dto, data);
 
-    const updated = await this.prisma.user.update({
-      where: { id: user.id },
-      data,
-    });
-    return this.toProfileResponse(updated);
+    const updated =
+      Object.keys(data).length > 0
+        ? await this.prisma.user.update({
+            where: { id: user.id },
+            data,
+          })
+        : user;
+
+    if (dto.tenantHandle !== undefined) {
+      if (tenantId === null || tenantId === undefined || !isTenantCuid(tenantId)) {
+        throw new BadRequestException("tenant_id_required_for_handle");
+      }
+      const activeTenantId = tenantId.trim();
+      const normalized = normalizeAndValidateMembershipHandle(dto.tenantHandle);
+      const membership = await this.prisma.membership.findUnique({
+        where: { userId_tenantId: { userId: user.id, tenantId: activeTenantId } },
+      });
+      if (!membership) {
+        throw new ForbiddenException("not_a_member_of_tenant");
+      }
+      if (membership.status !== MembershipStatus.ACTIVE) {
+        throw new BadRequestException("cannot_update_handle_of_deactivated_member");
+      }
+      if (normalized !== membership.handle) {
+        try {
+          await this.prisma.membership.update({
+            where: { id: membership.id },
+            data: { handle: normalized },
+          });
+        } catch (err) {
+          if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+            throw new ConflictException("membership_handle_taken");
+          }
+          throw err;
+        }
+      }
+    }
+
+    return this.getProfile(supabaseUser, tenantId);
   }
 
   async createAvatarSignedUpload(supabaseUser: SupabaseUser, mimeType: string) {
@@ -88,10 +154,6 @@ export class UsersService {
       ...base,
       authUserId: user.authUserId,
     };
-  }
-
-  private async toProfileResponse(user: PrismaUser) {
-    return this.buildPublicProfileFields(user);
   }
 
   private async buildPublicProfileFields(user: PrismaUser) {

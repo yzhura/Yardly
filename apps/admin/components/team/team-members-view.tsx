@@ -385,6 +385,9 @@ export function TeamMembersView({
                               <p className="truncate text-xs text-muted-foreground">
                                 {email ?? "—"}
                               </p>
+                              <p className="mt-0.5 truncate font-mono text-[11px] text-muted-foreground">
+                                @{row.handle}
+                              </p>
                             </div>
                           </div>
                         </td>

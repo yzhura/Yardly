@@ -3,9 +3,9 @@ description: Yardly canonical project context — stack, security, code style, t
 alwaysApply: true
 ---
 
-# Yardly: Core Development Rules (v1.9)
+# Yardly: Core Development Rules (v1.10)
 
-**Cursor rules layout:** This file is the single always-on rule. Add other `.mdc` files under `.cursor/rules/` only for large, narrow topics (use explicit `globs`) so context is not duplicated. API-specific security guardrails live in `.cursor/rules/yardly-api-security.mdc` (`apps/api/**`).
+**Cursor rules layout:** This file is the single always-on rule. Add other `.mdc` files under `.cursor/rules/` only for large, narrow topics (use explicit `globs`) so context is not duplicated. API-specific security guardrails live in `.cursor/rules/yardly-api-security.mdc` (`apps/api/**`). Admin SaaS product UX (clarity, discoverability, empty states, feedback) lives in `.cursor/rules/yardly-ux.mdc` (`apps/admin/**`).
 
 ## Code Quality & Ownership
 - **Engineering standards:** DRY, SOLID, clean code. Prefer small modules, clear boundaries, and explicit naming. Write as a senior engineer would: predictable structure, minimal coupling, no clever one-offs.
@@ -53,7 +53,7 @@ alwaysApply: true
 13. **Single API path per capability:** In `apps/admin/app/api/**`, keep one canonical proxy route shape for each backend capability. When route params evolve (e.g. adding `:keyName`), remove obsolete sibling routes immediately to avoid split behavior and dead code.
 14. **Large component decomposition:** If a client component grows beyond ~350-400 lines, extract reusable subcomponents/config modules (forms, modal content, integration field maps) before adding new behavior. Keep orchestration in the parent and rendering primitives in children.
 15. **Async modal UX:** For modal submit flows, always disable submit/cancel and block backdrop/ESC close while request is pending. Prefer a single aggregated toast for batch operations (not one toast per field/item).
-16. **Admin API proxy errors (`apps/admin/lib/api-proxy-error.ts`):** When proxying Nest, handle `message` as a **string array** (typical `ValidationPipe` output) with stable Ukrainian copy and a dedicated code (e.g. `validation_failed`); do not treat Nest’s generic `"Bad Request"` as the primary `code` when validation messages are present. Map known business exception **string** `message` values via `ERROR_MESSAGE_MAP`.
+16. **Admin API proxy errors (`apps/admin/lib/api-proxy-error.ts`):** When proxying Nest, handle `message` as a **string array** (typical `ValidationPipe` output) with stable Ukrainian copy and a dedicated code (e.g. `validation_failed`); do not treat Nest’s generic `"Bad Request"` as the primary `code` when validation messages are present. Map known business exception **string** `message` values via `ERROR_MESSAGE_MAP`. On upstream failure, prefer **`handleApiProxyError(response, fallbackUaMessage)`** over ad-hoc `NextResponse.json` so validation arrays and mapped codes behave consistently. When you add a new Nest **`message`** code returned to clients (e.g. `membership_handle_taken`), **extend `ERROR_MESSAGE_MAP`** with Ukrainian copy in the same change.
 17. **Modal overlays (client):** Full-screen dialogs should use **`createPortal(..., document.body)`** with a high `z-index` backdrop (e.g. `z-[120]`). **Shadcn `SelectContent` inside those overlays** needs a **higher z-index** (e.g. `className="z-[130]"`) so the dropdown paints above the dimmed backdrop.
 18. **Hidden `<input type="file">`:** Do not wrap a visually hidden file input in `<label>` around a **`<Button type="button">`** as the only trigger — the button receives the click and the file picker may never open. Use **`useRef`** on the input and **`onClick={() => ref.current?.click()}`** on the button; reset `input.value` in `onChange` after handling if selecting the **same** file again must re-fire `onChange`.
 
@@ -87,6 +87,7 @@ function titleFor(a: A | null) {
   - `requireAuthMe()` — loads profile + memberships via Nest or redirects to `/login` / `/auth/backend-unavailable`.
   - `getServerAccessToken()` — Bearer token for Server Actions calling the API (same getUser → getSession order as `fetchAuthMe`).
   - `ACTIVE_TENANT_COOKIE` + `setActiveTenantCookie` / `clearActiveTenantCookie` — active organization id (httpOnly); do not hardcode the cookie name elsewhere.
+  - **`isTenantCuid`:** **`apps/admin/lib/tenant-cuid.ts`** mirrors **`apps/api/src/tenancy/tenant-cuid.ts`** (Prisma-style `cuid` for `tenantId`). When changing tenant id validation, update **both** files in one PR.
 - **Ukrainian** copy on all user-facing pages (errors, buttons, descriptions).
 - **Safe error UX (admin):** User-facing error pages/forms must avoid raw backend/provider messages, stack traces, env names, internal URLs, or config hints. Show generic Ukrainian copy for users; keep technical details only in server logs/dev tooling.
 
@@ -95,12 +96,14 @@ function titleFor(a: A | null) {
 - **Business data:** Every **domain** table (orders, inventory, integrations, etc.) **MUST** include `tenantId` and Nest/Prisma queries **MUST** filter by the active tenant once those models exist.
 - **Filtering:** All backend queries for tenant-scoped data MUST include a `.where({ tenantId })` (or equivalent) for the **current** organization from the request context.
 - **FOP Profiles (target):** Only one `IntegrationProfile` may have `isActive: true` per tenant — enforce when the model exists.
+- **Membership `@handle` (per-tenant pseudonym):** Stored on **`Membership`** (not `User`); unique per **`(tenantId, handle)`**. Canonical regex, min/max length, and generated-handle caps live in **`apps/api/src/tenants/membership-handle.constants.ts`** — import from DTOs (`@Matches` with the exported **`RegExp`**, `@MinLength` / `@MaxLength`) and from **`membership-handle.utils.ts`** / **`membership-handle-allocate.ts`**; do not copy-paste handle rules elsewhere. Assign **`handle`** in the **same transaction** as creating the membership (setup tenant, invite accept). Changing handle for the active org may go through **`PATCH /users/me/profile`** with body **`tenantHandle`** and header **`X-Tenant-Id`**, or through tenant member endpoints where applicable.
 
 ## Business Logic Constants (target domain — apply when models exist)
 - **Order Statuses:** NEW, PENDING_ASSIGNMENT, IN_PRODUCTION, READY_TO_SHIP, SHIPPED, COMPLETED, RETURNED, CANCELLED.
 - **Inventory:** `Material.quantityReserved` increases on Order creation; `quantityTotal` decreases only on actual shipment/usage.
 
 ## API / Monorepo gotchas
+- **User profile + active tenant:** Admin BFF **`apps/admin/app/api/users/me/profile/route.ts`** forwards **`X-Tenant-Id`** from **`ACTIVE_TENANT_COOKIE`** only when **`isTenantCuid`** passes, then uses **`handleApiProxyError`** on Nest errors. Nest **`apps/api/src/users/users.controller.ts`** passes the same header into **`UsersService`** for optional **`tenantPersona`** / **`tenantHandle`** — keep cookie → header → service contract aligned when editing this flow.
 - **Material units (Nest + admin):** Canonical allowed units for DTOs live in **`apps/api/src/materials/dto/material-dto-helpers.ts`** (`MATERIAL_ALLOWED_UNITS`). Keep them **aligned with admin `UNIT_OPTIONS`** (Ukrainian labels). The shared `transformMaterialUnit` maps legacy Latin **`m`** → **`м`** before `@IsIn` validation.
 - **`AppModule`:** `ConfigModule.forRoot(... ) as any` works around duplicate `@nestjs/*` install paths under npm workspaces breaking `Promise<DynamicModule>` typing. Do not remove the cast unless the dependency tree is deduped (single `@nestjs/common` for compile + runtime).
 - **CORS:** `ADMIN_ORIGIN` must include the admin dev origin (e.g. `http://localhost:3000`). Use strict allowlist matching for origins; do not allow broad wildcard behavior with credentials.

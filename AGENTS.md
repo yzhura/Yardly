@@ -2,7 +2,9 @@
 
 ## Where the rules live
 
-- **Cursor (primary):** [`.cursor/rules/yardly-core.mdc`](.cursor/rules/yardly-core.mdc) — `alwaysApply: true`; stack, tenancy, security, admin patterns (incl. Nest proxy validation shaping, modal/`Select` z-index, hidden file input + button, `*-page-skeleton` + route `loading.tsx`, materials unit DTO helper), tooling, and code-style expectations.
+- **Cursor (primary):** [`.cursor/rules/yardly-core.mdc`](.cursor/rules/yardly-core.mdc) — `alwaysApply: true`; stack, tenancy, security, admin patterns (incl. Nest proxy + **`handleApiProxyError`** / **`ERROR_MESSAGE_MAP`**, membership `@handle` constants, optional **`X-Tenant-Id`** on profile, modal/`Select` z-index, hidden file input + button, `*-page-skeleton` + route `loading.tsx`, materials unit DTO helper), tooling, and code-style expectations.
+- **Nest API security (globs):** [`.cursor/rules/yardly-api-security.mdc`](.cursor/rules/yardly-api-security.mdc) — applies when working under `apps/api/**`.
+- **Admin UX (globs):** [`.cursor/rules/yardly-ux.mdc`](.cursor/rules/yardly-ux.mdc) — applies when working under `apps/admin/**`; clarity, discoverability, Apple/Google-like polish, empty states, feedback, a11y — complements motion/Shadcn rules in `yardly-core.mdc`.
 - **Legacy pointer:** [`.cursorrules`](.cursorrules) — redirects to the paths above.
 
 Read `yardly-core.mdc` before substantial changes to `apps/admin`, `apps/api`, or `packages/database`.

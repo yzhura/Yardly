@@ -1,12 +1,18 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { AttributeScope, MembershipStatus, OrganizationRole } from "@prisma/client";
+import {
+  AttributeScope,
+  MembershipStatus,
+  OrganizationRole,
+  Prisma,
+} from "@prisma/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { randomUUID } from "crypto";
 import { buildSupabaseStoragePublicUrl } from "../lib/supabase-storage-public-url";
@@ -16,6 +22,8 @@ import { PrismaService } from "../prisma/prisma.service";
 import { resolveUserDisplayName } from "../users/user-profile.utils";
 import { UsersService } from "../users/users.service";
 import { UpdateTenantSettingsDto } from "./dto/update-tenant-settings.dto";
+import { allocateUniqueMembershipHandle } from "./membership-handle-allocate";
+import { normalizeAndValidateMembershipHandle } from "./membership-handle.utils";
 
 const TENANT_LOGO_MIME_TO_EXT: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -59,11 +67,13 @@ export class TenantsService {
           { tenantId: tenant.id, attributeDefinitionId: sizeDefinition.id, name: "XL", slug: "xl", sortIndex: 50 },
         ],
       });
+      const handle = await allocateUniqueMembershipHandle(tx, tenant.id, user);
       const membership = await tx.membership.create({
         data: {
           userId: user.id,
           tenantId: tenant.id,
           role: "OWNER",
+          handle,
         },
       });
 
@@ -95,6 +105,7 @@ export class TenantsService {
           id: m.id,
           role: m.role,
           status: m.status,
+          handle: m.handle,
           createdAt: m.createdAt.toISOString(),
           user: {
             id: m.user.id,
@@ -320,15 +331,21 @@ export class TenantsService {
     dto: {
       role?: "ADMIN" | "MANAGER" | "SHIPPER";
       status?: MembershipStatus;
+      handle?: string;
     },
   ) {
     const hasRole = dto.role !== undefined;
     const hasStatus = dto.status !== undefined;
-    if (!hasRole && !hasStatus) {
+    const hasHandle = dto.handle !== undefined;
+    const updateCount = Number(hasRole) + Number(hasStatus) + Number(hasHandle);
+    if (updateCount === 0) {
       throw new BadRequestException("no_updates");
     }
-    if (hasRole && hasStatus) {
+    if (updateCount > 1) {
       throw new BadRequestException("conflicting_updates");
+    }
+    if (hasHandle) {
+      return this.updateMembershipHandle(supabaseUser, tenantId, membershipId, dto.handle!);
     }
     if (hasStatus) {
       if (dto.status !== MembershipStatus.ACTIVE) {
@@ -337,6 +354,49 @@ export class TenantsService {
       return this.reactivateMember(supabaseUser, tenantId, membershipId);
     }
     return this.updateMemberRole(supabaseUser, tenantId, membershipId, dto.role!);
+  }
+
+  async updateMembershipHandle(
+    supabaseUser: SupabaseUser,
+    tenantId: string,
+    membershipId: string,
+    handle: string,
+  ) {
+    const actor = await this.usersService.upsertFromSupabaseUser(supabaseUser);
+    await this.assertTenantMember(actor.id, tenantId);
+    const target = await this.getTargetMembership(tenantId, membershipId);
+    if (target.userId !== actor.id) {
+      throw new ForbiddenException("cannot_change_other_member_handle");
+    }
+    if (target.status !== MembershipStatus.ACTIVE) {
+      throw new BadRequestException("cannot_update_handle_of_deactivated_member");
+    }
+
+    const normalized = normalizeAndValidateMembershipHandle(handle);
+
+    try {
+      const updated = await this.prisma.membership.update({
+        where: { id: target.id },
+        data: { handle: normalized },
+        include: { user: true },
+      });
+
+      return {
+        member: {
+          id: updated.id,
+          role: updated.role,
+          status: updated.status,
+          handle: updated.handle,
+          createdAt: updated.createdAt.toISOString(),
+          user: { id: updated.user.id, email: updated.user.email },
+        },
+      };
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        throw new ConflictException("membership_handle_taken");
+      }
+      throw err;
+    }
   }
 
   async updateMemberRole(
@@ -375,6 +435,7 @@ export class TenantsService {
         id: updated.id,
         role: updated.role,
         status: updated.status,
+        handle: updated.handle,
         createdAt: updated.createdAt.toISOString(),
         user: { id: updated.user.id, email: updated.user.email },
       },
@@ -416,6 +477,7 @@ export class TenantsService {
         id: updated.id,
         role: updated.role,
         status: updated.status,
+        handle: updated.handle,
         createdAt: updated.createdAt.toISOString(),
         user: { id: updated.user.id, email: updated.user.email },
       },
@@ -454,6 +516,7 @@ export class TenantsService {
         id: updated.id,
         role: updated.role,
         status: updated.status,
+        handle: updated.handle,
         createdAt: updated.createdAt.toISOString(),
         user: { id: updated.user.id, email: updated.user.email },
       },

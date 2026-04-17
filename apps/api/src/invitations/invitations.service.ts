@@ -15,6 +15,7 @@ import { SupabaseAdminService } from "../supabase/supabase-admin.service";
 import { UsersService } from "../users/users.service";
 import type { CreateInvitationDto } from "./dto/create-invitation.dto";
 import { normalizeInviteEmail } from "./email-normalize";
+import { allocateUniqueMembershipHandle } from "../tenants/membership-handle-allocate";
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -68,16 +69,27 @@ export class InvitationsService {
 
     for (const inv of pending) {
       await this.prisma.$transaction(async (tx) => {
-        // Race: parallel /auth/me or duplicate pending rows — skipDuplicates avoids P2002.
-        await tx.membership.createMany({
-          data: [
-            {
-              userId: user.id,
-              tenantId: inv.tenantId,
-              role: inv.role,
-            },
-          ],
-          skipDuplicates: true,
+        const existing = await tx.membership.findUnique({
+          where: {
+            userId_tenantId: { userId: user.id, tenantId: inv.tenantId },
+          },
+        });
+        if (existing) {
+          await tx.invitation.update({
+            where: { id: inv.id },
+            data: { status: InvitationStatus.ACCEPTED },
+          });
+          return;
+        }
+
+        const handle = await allocateUniqueMembershipHandle(tx, inv.tenantId, user);
+        await tx.membership.create({
+          data: {
+            userId: user.id,
+            tenantId: inv.tenantId,
+            role: inv.role,
+            handle,
+          },
         });
         await tx.invitation.update({
           where: { id: inv.id },

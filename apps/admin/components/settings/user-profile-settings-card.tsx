@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -8,7 +9,10 @@ import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { useUpdateUserProfile } from "@/api/user-profile/use-update-user-profile";
 import { useUserProfile } from "@/api/user-profile/use-user-profile";
-import type { AvatarSignedUploadResponse } from "@/api/user-profile/types";
+import type {
+  AvatarSignedUploadResponse,
+  UpdateUserProfilePayload,
+} from "@/api/user-profile/types";
 import { apiClient } from "@/api/client";
 import {
   isUserProfilePresetId,
@@ -20,6 +24,12 @@ import {
   USER_PROFILE_UPLOAD_MAX_BYTES,
   USER_PROFILE_UPLOAD_MIME_TYPES,
 } from "@/constants/user-profile-upload";
+import {
+  MEMBERSHIP_HANDLE_MAX,
+  MEMBERSHIP_HANDLE_MIN,
+  MEMBERSHIP_HANDLE_PATTERN,
+  membershipHandleValidationMessage,
+} from "@/constants/membership-handle";
 import {
   userProfileFormSchema,
   type UserProfileFormValues,
@@ -74,6 +84,7 @@ function inferAvatarMode(profile: {
 
 export function UserProfileSettingsCard() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: profile, isLoading, isError, refetch } = useUserProfile();
   const updateProfile = useUpdateUserProfile();
@@ -90,6 +101,7 @@ export function UserProfileSettingsCard() {
     string | null
   >(null);
   const [uploadBusy, setUploadBusy] = useState(false);
+  const [tenantHandleInput, setTenantHandleInput] = useState("");
 
   const form = useForm<UserProfileFormValues>({
     resolver: yupResolver(userProfileFormSchema),
@@ -113,6 +125,11 @@ export function UserProfileSettingsCard() {
       firstName: profile.firstName ?? "",
       lastName: profile.lastName ?? "",
     });
+    if (profile.tenantPersona) {
+      setTenantHandleInput(profile.tenantPersona.handle);
+    } else {
+      setTenantHandleInput("");
+    }
     if (avatarPreviewBlobUrl) {
       return;
     }
@@ -224,12 +241,27 @@ export function UserProfileSettingsCard() {
   }
 
   async function onSubmit(values: UserProfileFormValues) {
-    const payload = {
+    const payload: UpdateUserProfilePayload = {
       firstName: values.firstName.trim() || null,
       lastName: values.lastName.trim() || null,
       avatarPresetId: null as string | null,
       avatarUrl: null as string | null,
     };
+
+    if (profile?.tenantPersona) {
+      const nextHandle = tenantHandleInput.trim().toLowerCase();
+      if (nextHandle !== profile.tenantPersona.handle) {
+        if (
+          nextHandle.length < MEMBERSHIP_HANDLE_MIN ||
+          nextHandle.length > MEMBERSHIP_HANDLE_MAX ||
+          !MEMBERSHIP_HANDLE_PATTERN.test(nextHandle)
+        ) {
+          toast.error(membershipHandleValidationMessage());
+          return;
+        }
+        payload.tenantHandle = nextHandle;
+      }
+    }
 
     if (avatarMode === "preset" && selectedPreset) {
       payload.avatarPresetId = selectedPreset;
@@ -247,6 +279,9 @@ export function UserProfileSettingsCard() {
       pending: "Збереження…",
       success: "Профіль оновлено",
       error: "Не вдалося зберегти зміни",
+    });
+    void queryClient.invalidateQueries({
+      predicate: (q) => Array.isArray(q.queryKey) && q.queryKey[0] === "members",
     });
     resetPreviewBlob();
     router.refresh();
@@ -288,15 +323,19 @@ export function UserProfileSettingsCard() {
           <CardHeader>
             <CardTitle className="text-lg">Особисті дані</CardTitle>
             <CardDescription>
-              Імʼя та прізвище відображаються в інтерфейсі.
+              Імʼя, прізвище та псевдонім (@handle) у поточній організації відображаються в
+              інтерфейсі.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="space-y-4" aria-label="Завантаження форми">
-                <Skeleton className="h-10 w-full max-w-md" />
-                <Skeleton className="h-10 w-full max-w-md" />
-                <Skeleton className="h-10 w-full max-w-md" />
+                <div className="grid max-w-xl gap-4 sm:grid-cols-2">
+                  <Skeleton className="h-10 w-full" aria-hidden />
+                  <Skeleton className="h-10 w-full" aria-hidden />
+                  <Skeleton className="h-10 w-full max-w-md sm:col-span-2" aria-hidden />
+                </div>
+                <Skeleton className="h-10 w-full max-w-md" aria-hidden />
               </div>
             ) : (
               <div className="space-y-6">
@@ -335,6 +374,31 @@ export function UserProfileSettingsCard() {
                       </FormItem>
                     )}
                   />
+                  {profile?.tenantPersona ? (
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="profile-tenant-handle">
+                        Псевдонім (@handle) у «{profile.tenantPersona.tenantName}»
+                      </Label>
+                      <Input
+                        id="profile-tenant-handle"
+                        value={tenantHandleInput}
+                        onChange={(e) => setTenantHandleInput(e.target.value)}
+                        className="max-w-md font-mono text-sm"
+                        maxLength={MEMBERSHIP_HANDLE_MAX}
+                        spellCheck={false}
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        aria-describedby="profile-tenant-handle-hint"
+                      />
+                      <p
+                        id="profile-tenant-handle-hint"
+                        className="text-xs text-muted-foreground"
+                      >
+                        {membershipHandleValidationMessage()} Зберігається латиницею в
+                        нижньому регістрі.
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="space-y-2">

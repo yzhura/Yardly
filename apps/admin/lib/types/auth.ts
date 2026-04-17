@@ -1,6 +1,7 @@
 export type MembershipDto = {
   id: string;
   role: string;
+  handle: string;
   tenant: { id: string; name: string };
 };
 
