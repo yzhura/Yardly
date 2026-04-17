@@ -33,7 +33,7 @@ export const DASHBOARD_NAV_MAIN: DashboardNavItem[] = [
     icon: Package,
     children: [
       { href: "/products", label: "Список товарів", icon: List },
-      { href: "/attributes", label: "Атрибути", icon: SlidersHorizontal },
+      { href: "/attributes", label: "Характеристики", icon: SlidersHorizontal },
     ],
   },
   { href: "/materials", label: "Склад матеріалів", icon: Warehouse },

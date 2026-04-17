@@ -9,7 +9,7 @@ const ERROR_MESSAGE_MAP: Record<string, string> = {
   membership_deactivated: "Ваш доступ до організації деактивовано.",
   insufficient_role_to_manage_materials: "У вас немає прав для керування матеріалами.",
   insufficient_role_to_manage_colors: "У вас немає прав для керування кольорами.",
-  insufficient_role_to_manage_attributes: "У вас немає прав для керування атрибутами.",
+  insufficient_role_to_manage_attributes: "У вас немає прав для керування характеристиками.",
 
   // Materials / categories / colors
   category_not_found: "Категорію не знайдено.",
@@ -20,12 +20,12 @@ const ERROR_MESSAGE_MAP: Record<string, string> = {
   color_already_exists: "Колір з такою назвою або HEX вже існує.",
 
   // Attributes
-  attribute_definition_not_found: "Атрибут не знайдено.",
-  attribute_value_not_found: "Значення атрибута не знайдено.",
-  attribute_definition_already_exists: "Атрибут з такою назвою вже існує.",
-  attribute_value_already_exists: "Таке значення атрибута вже існує.",
-  invalid_attribute_name: "Некоректна назва атрибута.",
-  invalid_attribute_value_name: "Некоректна назва значення атрибута.",
+  attribute_definition_not_found: "Характеристику не знайдено.",
+  attribute_value_not_found: "Значення характеристики не знайдено.",
+  attribute_definition_already_exists: "Характеристика з такою назвою вже існує.",
+  attribute_value_already_exists: "Таке значення характеристики вже існує.",
+  invalid_attribute_name: "Некоректна назва характеристики.",
+  invalid_attribute_value_name: "Некоректна назва значення характеристики.",
   no_updates: "Немає змін для збереження.",
 
   // Storage

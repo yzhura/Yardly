@@ -22,7 +22,7 @@ export async function GET(req: Request, { params }: RouteParams) {
   });
 
   if (!res.ok) {
-    return handleApiProxyError(res, "Не вдалося завантажити атрибути");
+    return handleApiProxyError(res, "Не вдалося завантажити характеристики");
   }
 
   const data = await res.json();
@@ -50,7 +50,7 @@ export async function POST(req: Request, { params }: RouteParams) {
   });
 
   if (!res.ok) {
-    return handleApiProxyError(res, "Не вдалося створити атрибут");
+    return handleApiProxyError(res, "Не вдалося створити характеристику");
   }
 
   const data = await res.json();

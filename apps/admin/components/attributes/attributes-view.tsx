@@ -28,7 +28,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { listItemReveal, MOTION_DURATION, MOTION_EASE, surfaceReveal } from "@/lib/motion";
+import {
+  listItemReveal,
+  MOTION_DURATION,
+  MOTION_EASE,
+  surfaceReveal,
+} from "@/lib/motion";
 import { ColorsView } from "@/components/colors/colors-view";
 import { AttributeModalShell } from "./attribute-modal-shell";
 import { useAttributes } from "@/api/attributes/use-attributes";
@@ -40,7 +45,11 @@ import {
   useUpdateDefinition,
   useUpdateValue,
 } from "@/api/attributes/use-attribute-actions";
-import type { AttributeDefinition, AttributeScope, AttributeValue } from "@/api/attributes/types";
+import type {
+  AttributeDefinition,
+  AttributeScope,
+  AttributeValue,
+} from "@/api/attributes/types";
 
 type AttributesViewProps = {
   tenantId: string;
@@ -61,13 +70,16 @@ const definitionSchema = yup.object({
   name: yup
     .string()
     .trim()
-    .min(1, "Введіть назву атрибута")
-    .max(80, "Назва атрибута має містити до 80 символів")
-    .required("Введіть назву атрибута"),
+    .min(1, "Введіть назву характеристики")
+    .max(80, "Назва характеристики має містити до 80 символів")
+    .required("Введіть назву характеристики"),
   scope: yup
     .mixed<AttributeScope>()
-    .oneOf(["MATERIAL", "PRODUCT", "BOTH"], "Оберіть застосування атрибута")
-    .required("Оберіть застосування атрибута"),
+    .oneOf(
+      ["MATERIAL", "PRODUCT", "BOTH"],
+      "Оберіть застосування характеристики",
+    )
+    .required("Оберіть застосування характеристики"),
 });
 
 const valueSchema = yup.object({
@@ -112,8 +124,8 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
     if (!confirmState) return null;
     if (confirmState.type === "definition") {
       return {
-        title: "Підтвердити архівацію атрибута",
-        description: `Атрибут «${confirmState.name}» і його значення будуть приховані.`,
+        title: "Підтвердити архівацію характеристики",
+        description: `Характеристика «${confirmState.name}» і її значення будуть приховані.`,
         confirmLabel: "Архівувати",
       };
     }
@@ -125,12 +137,18 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
   }, [confirmState]);
 
   const [definitionModalOpen, setDefinitionModalOpen] = useState(false);
-  const [definitionModalMode, setDefinitionModalMode] = useState<DefinitionModalMode>("create");
-  const [editingDefinitionId, setEditingDefinitionId] = useState<string | null>(null);
+  const [definitionModalMode, setDefinitionModalMode] =
+    useState<DefinitionModalMode>("create");
+  const [editingDefinitionId, setEditingDefinitionId] = useState<string | null>(
+    null,
+  );
 
   const [valueModalOpen, setValueModalOpen] = useState(false);
-  const [valueModalMode, setValueModalMode] = useState<ValueModalMode>("create");
-  const [valueModalDefinitionId, setValueModalDefinitionId] = useState<string | null>(null);
+  const [valueModalMode, setValueModalMode] =
+    useState<ValueModalMode>("create");
+  const [valueModalDefinitionId, setValueModalDefinitionId] = useState<
+    string | null
+  >(null);
   const [editingValueId, setEditingValueId] = useState<string | null>(null);
 
   const definitionForm = useForm<DefinitionFormValues>({
@@ -145,11 +163,13 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
     mode: "onTouched",
   });
 
-  const definitionBusy = createDefinition.isPending || updateDefinition.isPending;
+  const definitionBusy =
+    createDefinition.isPending || updateDefinition.isPending;
   const valueBusy = createValue.isPending || updateValue.isPending;
 
   const valueModalDefinition = useMemo(
-    () => data?.definitions.find((d) => d.id === valueModalDefinitionId) ?? null,
+    () =>
+      data?.definitions.find((d) => d.id === valueModalDefinitionId) ?? null,
     [data?.definitions, valueModalDefinitionId],
   );
 
@@ -201,12 +221,20 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
             definitionId: editingDefinitionId,
             payload: values,
           }),
-          { pending: "Збереження…", success: "Атрибут оновлено", error: "Не вдалося зберегти атрибут" },
+          {
+            pending: "Збереження…",
+            success: "Характеристику оновлено",
+            error: "Не вдалося зберегти характеристику",
+          },
         );
       } else {
         await toast.promise(
           createDefinition.mutateAsync({ tenantId, ...values }),
-          { pending: "Збереження…", success: "Атрибут створено", error: "Не вдалося створити атрибут" },
+          {
+            pending: "Збереження…",
+            success: "Характеристику створено",
+            error: "Не вдалося створити характеристику",
+          },
         );
       }
       setEditingDefinitionId(null);
@@ -228,7 +256,11 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
             valueId: editingValueId,
             payload: values,
           }),
-          { pending: "Збереження…", success: "Значення оновлено", error: "Не вдалося оновити значення" },
+          {
+            pending: "Збереження…",
+            success: "Значення оновлено",
+            error: "Не вдалося оновити значення",
+          },
         );
       } else {
         await toast.promise(
@@ -237,7 +269,11 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
             definitionId: valueModalDefinitionId,
             ...values,
           }),
-          { pending: "Збереження…", success: "Значення створено", error: "Не вдалося створити значення" },
+          {
+            pending: "Збереження…",
+            success: "Значення створено",
+            error: "Не вдалося створити значення",
+          },
         );
       }
       setEditingValueId(null);
@@ -250,14 +286,20 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
   }
 
   const definitionModalTitle =
-    definitionModalMode === "edit" ? "Редагувати атрибут" : "Додати атрибут";
+    definitionModalMode === "edit"
+      ? "Редагувати характеристику"
+      : "Додати характеристику";
   const definitionModalAria =
-    definitionModalMode === "edit" ? "Редагування атрибута" : "Створення атрибута";
+    definitionModalMode === "edit"
+      ? "Редагування характеристики"
+      : "Створення характеристики";
 
   const valueModalTitle =
     valueModalMode === "edit" ? "Редагувати значення" : "Додати значення";
   const valueModalAria =
-    valueModalMode === "edit" ? "Редагування значення атрибута" : "Додавання значення атрибута";
+    valueModalMode === "edit"
+      ? "Редагування значення характеристики"
+      : "Додавання значення характеристики";
 
   return (
     <motion.div
@@ -279,7 +321,10 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
         onConfirm={async () => {
           if (!confirmState) return;
           if (confirmState.type === "definition") {
-            await archiveDefinition.mutateAsync({ tenantId, definitionId: confirmState.id });
+            await archiveDefinition.mutateAsync({
+              tenantId,
+              definitionId: confirmState.id,
+            });
             if (editingDefinitionId === confirmState.id) {
               setDefinitionModalOpen(false);
               setEditingDefinitionId(null);
@@ -312,14 +357,19 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
                   onBackdropClose={() => setDefinitionModalOpen(false)}
                   ariaLabel={definitionModalAria}
                 >
-                  <h3 className="text-lg font-semibold text-foreground">{definitionModalTitle}</h3>
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {definitionModalTitle}
+                  </h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Назва та сфера застосування атрибута для матеріалів і товарів.
+                    Назва та сфера застосування характеристики для матеріалів і
+                    товарів.
                   </p>
 
                   <Form {...definitionForm}>
                     <form
-                      onSubmit={definitionForm.handleSubmit((v) => void submitDefinition(v))}
+                      onSubmit={definitionForm.handleSubmit(
+                        (v) => void submitDefinition(v),
+                      )}
                       className="mt-4 space-y-4"
                     >
                       <FormField
@@ -327,7 +377,7 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
                         name="name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Назва атрибута</FormLabel>
+                            <FormLabel>Назва характеристики</FormLabel>
                             <FormControl>
                               <Input
                                 placeholder="Напр. Розмір чашки"
@@ -356,7 +406,10 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
                                 </SelectTrigger>
                                 <SelectContent className="z-[130]">
                                   {scopeOptions.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value}>
+                                    <SelectItem
+                                      key={opt.value}
+                                      value={opt.value}
+                                    >
                                       {opt.label}
                                     </SelectItem>
                                   ))}
@@ -378,8 +431,13 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
                         >
                           Скасувати
                         </Button>
-                        <Button type="submit" disabled={!canManage || definitionBusy}>
-                          {definitionModalMode === "edit" ? "Зберегти" : "Створити"}
+                        <Button
+                          type="submit"
+                          disabled={!canManage || definitionBusy}
+                        >
+                          {definitionModalMode === "edit"
+                            ? "Зберегти"
+                            : "Створити"}
                         </Button>
                       </div>
                     </form>
@@ -395,24 +453,34 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
                 >
                   {!valueModalDefinition ? (
                     <div className="py-8 text-center text-sm text-muted-foreground">
-                      Атрибут не знайдено.
+                      Характеристику не знайдено.
                       <div className="mt-4 flex justify-center">
-                        <Button type="button" variant="outline" onClick={() => setValueModalOpen(false)}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setValueModalOpen(false)}
+                        >
                           Закрити
                         </Button>
                       </div>
                     </div>
                   ) : (
                     <>
-                      <h3 className="text-lg font-semibold text-foreground">{valueModalTitle}</h3>
+                      <h3 className="text-lg font-semibold text-foreground">
+                        {valueModalTitle}
+                      </h3>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Атрибут:{" "}
-                        <span className="font-medium text-foreground">{valueModalDefinition.name}</span>
+                        Характеристика:{" "}
+                        <span className="font-medium text-foreground">
+                          {valueModalDefinition.name}
+                        </span>
                       </p>
 
                       <Form {...valueForm}>
                         <form
-                          onSubmit={valueForm.handleSubmit((v) => void submitValue(v))}
+                          onSubmit={valueForm.handleSubmit(
+                            (v) => void submitValue(v),
+                          )}
                           className="mt-4 space-y-4"
                         >
                           <FormField
@@ -443,7 +511,9 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
                                     type="number"
                                     min={0}
                                     value={field.value}
-                                    onChange={(e) => field.onChange(Number(e.target.value))}
+                                    onChange={(e) =>
+                                      field.onChange(Number(e.target.value))
+                                    }
                                     disabled={!canManage || valueBusy}
                                   />
                                 </FormControl>
@@ -452,14 +522,18 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
                             )}
                           />
                           <div className="flex flex-wrap justify-end gap-2 pt-1">
-                            {valueModalMode === "edit" && editingValueId && canManage ? (
+                            {valueModalMode === "edit" &&
+                            editingValueId &&
+                            canManage ? (
                               <Button
                                 type="button"
                                 variant="destructive"
                                 className="mr-auto"
                                 disabled={valueBusy}
                                 onClick={() => {
-                                  const v = valueModalDefinition.values.find((x) => x.id === editingValueId);
+                                  const v = valueModalDefinition.values.find(
+                                    (x) => x.id === editingValueId,
+                                  );
                                   setConfirmState({
                                     type: "value",
                                     definitionId: valueModalDefinition.id,
@@ -481,8 +555,13 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
                             >
                               Скасувати
                             </Button>
-                            <Button type="submit" disabled={!canManage || valueBusy}>
-                              {valueModalMode === "edit" ? "Зберегти" : "Створити"}
+                            <Button
+                              type="submit"
+                              disabled={!canManage || valueBusy}
+                            >
+                              {valueModalMode === "edit"
+                                ? "Зберегти"
+                                : "Створити"}
                             </Button>
                           </div>
                         </form>
@@ -498,15 +577,18 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Атрибути</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+            Характеристики
+          </h1>
           <p className="mt-2 max-w-3xl text-muted-foreground">
-            Створюйте керовані атрибути та значення (як enum), щоб уникнути дублювань і хаосу у фільтрах.
+            Створюйте керовані характеристики та значення, щоб уникнути
+            дублювань і хаосу у фільтрах.
           </p>
         </div>
         {canManage ? (
           <Button type="button" onClick={openCreateDefinitionModal}>
             <Plus className="mr-2 h-4 w-4" aria-hidden />
-            Додати атрибут
+            Додати характеристику
           </Button>
         ) : null}
       </div>
@@ -527,11 +609,16 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
                     className="rounded-lg border border-border/80 bg-background p-4"
                     initial={listItemReveal.initial}
                     animate={listItemReveal.animate}
-                    transition={{ duration: MOTION_DURATION.fast, ease: MOTION_EASE }}
+                    transition={{
+                      duration: MOTION_DURATION.fast,
+                      ease: MOTION_EASE,
+                    }}
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
-                        <p className="font-medium text-foreground">{definition.name}</p>
+                        <p className="font-medium text-foreground">
+                          {definition.name}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {definition.slug} · {scopeLabel(definition.scope)}
                           {definition.isSystem ? " · системний" : ""}
@@ -555,8 +642,10 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
                               size="icon"
                               variant="outline"
                               className="h-9 w-9"
-                              aria-label={`Редагувати атрибут ${definition.name}`}
-                              onClick={() => openEditDefinitionModal(definition)}
+                              aria-label={`Редагувати характеристику ${definition.name}`}
+                              onClick={() =>
+                                openEditDefinitionModal(definition)
+                              }
                             >
                               <Pencil className="h-4 w-4" aria-hidden />
                             </Button>
@@ -565,7 +654,7 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
                               size="icon"
                               variant="destructive"
                               className="h-9 w-9"
-                              aria-label={`Архівувати атрибут ${definition.name}`}
+                              aria-label={`Архівувати характеристику ${definition.name}`}
                               onClick={() =>
                                 setConfirmState({
                                   type: "definition",
@@ -592,10 +681,14 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
                             <button
                               type="button"
                               className="min-w-0 truncate text-left hover:underline"
-                              onClick={() => openEditValueModal(definition.id, value)}
+                              onClick={() =>
+                                openEditValueModal(definition.id, value)
+                              }
                             >
                               <span>{value.name}</span>
-                              <span className="ml-1 text-muted-foreground tabular-nums">#{value.sortIndex}</span>
+                              <span className="ml-1 text-muted-foreground tabular-nums">
+                                #{value.sortIndex}
+                              </span>
                             </button>
                             {canManage ? (
                               <Button
@@ -622,13 +715,15 @@ export function AttributesView({ tenantId, canManage }: AttributesViewProps) {
                         ))}
                       </div>
                     ) : (
-                      <p className="mt-3 text-sm text-muted-foreground">Немає значень.</p>
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        Немає значень.
+                      </p>
                     )}
                   </motion.div>
                 ))
               ) : (
                 <div className="rounded-lg border border-dashed border-border/80 p-10 text-center text-muted-foreground">
-                  Атрибути ще не створені.
+                  Характеристики ще не створені.
                 </div>
               )}
             </div>

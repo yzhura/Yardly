@@ -28,7 +28,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
   });
 
   if (!res.ok) {
-    return handleApiProxyError(res, "Не вдалося оновити атрибут");
+    return handleApiProxyError(res, "Не вдалося оновити характеристику");
   }
 
   const data = await res.json();
@@ -47,7 +47,7 @@ export async function DELETE(_: Request, { params }: RouteParams) {
   });
 
   if (!res.ok) {
-    return handleApiProxyError(res, "Не вдалося архівувати атрибут");
+    return handleApiProxyError(res, "Не вдалося архівувати характеристику");
   }
 
   const data = await res.json();
