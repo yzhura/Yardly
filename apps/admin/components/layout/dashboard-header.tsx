@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AlertTriangle, LogOut, Menu, Search, UserRound } from "lucide-react";
 import { signOut } from "@/app/actions/auth";
 import { MobileNavDrawer } from "@/components/layout/app-sidebar";
@@ -13,37 +13,51 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { greetingEmojiFromUserId } from "@/lib/dashboard-header-greeting";
+import { randomGreetingEmoji } from "@/lib/dashboard-header-greeting";
 import { cn } from "@/lib/utils";
 
 const HEADER_LOGOUT_FORM_ID = "yardly-header-logout";
 
 type DashboardHeaderProps = {
   tenantName: string;
+  tenantLogoUrl: string | null;
   userEmail: string | null;
   userDisplayName: string | null;
   userAvatarUrl: string | null;
   greetingFirstName: string | null;
-  greetingEmojiSeed: string;
 };
 
 export function DashboardHeader({
   tenantName,
+  tenantLogoUrl,
   userEmail,
   userDisplayName,
   userAvatarUrl,
   greetingFirstName,
-  greetingEmojiSeed,
 }: DashboardHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const initial = (userDisplayName?.trim()?.[0] ?? userEmail?.trim()?.[0] ?? "?").toUpperCase();
-  const accountLabel = userDisplayName?.trim() || userEmail?.trim() || "Профіль";
+  const initial = (
+    userDisplayName?.trim()?.[0] ??
+    userEmail?.trim()?.[0] ??
+    "?"
+  ).toUpperCase();
+  const accountLabel =
+    userDisplayName?.trim() || userEmail?.trim() || "Профіль";
   const triggerAriaLabel = `Меню облікового запису: ${accountLabel}`;
-  const greetingEmoji = greetingEmojiFromUserId(greetingEmojiSeed);
+  const greetingEmojiRef = useRef<string | null>(null);
+  if (greetingEmojiRef.current === null) {
+    greetingEmojiRef.current = randomGreetingEmoji();
+  }
+  const greetingEmoji = greetingEmojiRef.current;
 
   return (
     <>
-      <form id={HEADER_LOGOUT_FORM_ID} action={signOut} hidden aria-hidden="true" />
+      <form
+        id={HEADER_LOGOUT_FORM_ID}
+        action={signOut}
+        hidden
+        aria-hidden="true"
+      />
       <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-3 border-b border-border/80 bg-background/90 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75 sm:gap-6 sm:px-6 lg:px-8">
         <Button
           type="button"
@@ -55,15 +69,6 @@ export function DashboardHeader({
         >
           <Menu className="h-5 w-5" aria-hidden />
         </Button>
-        <div className="min-w-0 max-w-[200px] shrink sm:max-w-[240px]">
-          <p className="truncate text-sm font-semibold text-foreground">{tenantName}</p>
-          <Link
-            href="/select-organization"
-            className="text-xs text-muted-foreground transition-colors hover:text-primary"
-          >
-            Змінити організацію
-          </Link>
-        </div>
 
         <div className="relative hidden min-w-0 flex-1 md:block">
           <Search
@@ -119,15 +124,26 @@ export function DashboardHeader({
               >
                 {userAvatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={userAvatarUrl} alt="" className="h-full w-full object-cover" />
+                  <img
+                    src={userAvatarUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   <span aria-hidden>{initial}</span>
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={6} className="min-w-[11rem]">
+            <DropdownMenuContent
+              align="end"
+              sideOffset={6}
+              className="min-w-[11rem]"
+            >
               <DropdownMenuItem asChild className="cursor-pointer">
-                <Link href="/settings/profile" className="flex items-center gap-2">
+                <Link
+                  href="/settings/profile"
+                  className="flex items-center gap-2"
+                >
                   <UserRound className="h-4 w-4" aria-hidden />
                   Профіль
                 </Link>
@@ -150,6 +166,7 @@ export function DashboardHeader({
         open={mobileMenuOpen}
         onClose={() => setMobileMenuOpen(false)}
         tenantName={tenantName}
+        tenantLogoUrl={tenantLogoUrl}
       />
     </>
   );

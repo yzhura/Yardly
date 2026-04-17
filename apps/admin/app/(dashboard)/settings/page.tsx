@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { BusinessProfilesSettingsCard } from "@/components/settings/business-profiles-settings-card";
+import { CompanySettingsCard } from "@/components/settings/company-settings-card";
 import { ThemeSettingsCard } from "@/components/settings/theme-settings-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +39,10 @@ export default async function SettingsPage() {
       </Card>
 
       <BusinessProfilesSettingsCard
+        tenantId={activeMembership.tenant.id}
+        canManage={canManageProfiles}
+      />
+      <CompanySettingsCard
         tenantId={activeMembership.tenant.id}
         canManage={canManageProfiles}
       />

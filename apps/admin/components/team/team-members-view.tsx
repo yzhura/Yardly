@@ -37,7 +37,7 @@ import {
   ORGANIZATION_ROLE_LABELS,
   organizationRoleLabel,
 } from "@/lib/organization-roles";
-import { memberDisplayName, memberInitials } from "@/lib/tenant-members";
+import { memberAvatarInitials, memberDisplayName } from "@/lib/tenant-members";
 import { listItemReveal, MOTION_DURATION, MOTION_EASE, surfaceReveal } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -326,8 +326,15 @@ export function TeamMembersView({
                 ) : (
                   pageRows.map((row) => {
                     const email = row.user.email;
-                    const name = memberDisplayName(email);
-                    const initials = memberInitials(email);
+                    const name =
+                      row.user.displayName?.trim() || memberDisplayName(email);
+                    const initials = memberAvatarInitials({
+                      displayName: row.user.displayName,
+                      firstName: row.user.firstName,
+                      lastName: row.user.lastName,
+                      email,
+                    });
+                    const avatarUrl = row.user.resolvedAvatarUrl;
                     const role = row.role as TenantMemberRole;
                     const status = row.status as TenantMemberStatus;
                     const roleIsOwner = role === "OWNER";
@@ -363,10 +370,15 @@ export function TeamMembersView({
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div
-                              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold text-foreground"
+                              className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-xs font-semibold text-foreground"
                               aria-hidden
                             >
-                              {initials}
+                              {avatarUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                              ) : (
+                                initials
+                              )}
                             </div>
                             <div className="min-w-0">
                               <p className="truncate font-medium text-foreground">{name}</p>

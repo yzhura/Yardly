@@ -3,11 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ChevronDown, LogOut, Package } from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { signOut } from "@/app/actions/auth";
+import { TenantLogoBadge } from "@/components/common/tenant-logo-badge";
 import { Button } from "@/components/ui/button";
-import { APPLE_SPRING, listItemReveal, MOTION_DURATION, MOTION_EASE } from "@/lib/motion";
+import {
+  APPLE_SPRING,
+  listItemReveal,
+  MOTION_DURATION,
+  MOTION_EASE,
+} from "@/lib/motion";
 import { DASHBOARD_NAV_MAIN } from "@/lib/dashboard-nav";
 import { cn } from "@/lib/utils";
 
@@ -18,11 +24,19 @@ function navItemActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function navChildrenActive(pathname: string, children: Array<{ href: string }>) {
+function navChildrenActive(
+  pathname: string,
+  children: Array<{ href: string }>,
+) {
   return children.some((child) => navItemActive(pathname, child.href));
 }
 
-export function AppSidebar() {
+type AppSidebarProps = {
+  tenantName: string;
+  tenantLogoUrl: string | null;
+};
+
+export function AppSidebar({ tenantName, tenantLogoUrl }: AppSidebarProps) {
   const pathname = usePathname();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
@@ -51,15 +65,13 @@ export function AppSidebar() {
           href="/"
           className="flex items-center gap-3 rounded-lg outline-none ring-offset-background transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-            <Package className="h-5 w-5" aria-hidden />
-          </span>
+          <TenantLogoBadge logoUrl={tenantLogoUrl} size="md" variant="brand" />
           <span className="min-w-0 text-left">
-            <span className="block text-lg font-extrabold leading-tight tracking-tight text-foreground">
-              Yard<span className="text-primary">ly</span>
+            <span className="block truncate text-lg font-extrabold leading-tight tracking-tight text-foreground">
+              {tenantName}
             </span>
             <span className="block truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              ERP для швейних брендів
+              Yardly ERP
             </span>
           </span>
         </Link>
@@ -67,17 +79,25 @@ export function AppSidebar() {
 
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
         {DASHBOARD_NAV_MAIN.map((item) => {
-          const childActive = item.children?.length ? navChildrenActive(pathname, item.children) : false;
+          const childActive = item.children?.length
+            ? navChildrenActive(pathname, item.children)
+            : false;
           const active = navItemActive(pathname, item.href) || childActive;
           const Icon = item.icon;
           const hasChildren = Boolean(item.children?.length);
-          const sectionOpen = hasChildren ? Boolean(openSections[item.href]) : false;
+          const sectionOpen = hasChildren
+            ? Boolean(openSections[item.href])
+            : false;
           return (
             <motion.div
               key={item.href}
               initial={listItemReveal.initial}
               animate={listItemReveal.animate}
-              transition={{ delay: 0.03, duration: MOTION_DURATION.fast, ease: MOTION_EASE }}
+              transition={{
+                delay: 0.03,
+                duration: MOTION_DURATION.fast,
+                ease: MOTION_EASE,
+              }}
               whileHover={{ x: 2 }}
               whileTap={{ scale: 0.995 }}
             >
@@ -86,7 +106,10 @@ export function AppSidebar() {
                   <button
                     type="button"
                     onClick={() =>
-                      setOpenSections((prev) => ({ ...prev, [item.href]: !Boolean(prev[item.href]) }))
+                      setOpenSections((prev) => ({
+                        ...prev,
+                        [item.href]: !Boolean(prev[item.href]),
+                      }))
                     }
                     className={cn(
                       "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
@@ -102,16 +125,24 @@ export function AppSidebar() {
                       )}
                       aria-hidden
                     />
-                    <span className="flex-1 truncate text-left">{item.label}</span>
+                    <span className="flex-1 truncate text-left">
+                      {item.label}
+                    </span>
                     <ChevronDown
-                      className={cn("h-4 w-4 transition-transform", sectionOpen ? "rotate-180" : "rotate-0")}
+                      className={cn(
+                        "h-4 w-4 transition-transform",
+                        sectionOpen ? "rotate-180" : "rotate-0",
+                      )}
                       aria-hidden
                     />
                   </button>
                   {sectionOpen ? (
                     <div className="mt-1 space-y-1 pl-10">
                       {item.children?.map((child) => {
-                        const childIsActive = navItemActive(pathname, child.href);
+                        const childIsActive = navItemActive(
+                          pathname,
+                          child.href,
+                        );
                         const ChildIcon = child.icon;
                         return (
                           <Link
@@ -124,7 +155,10 @@ export function AppSidebar() {
                                 : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
                             )}
                           >
-                            <ChildIcon className="h-4 w-4 shrink-0" aria-hidden />
+                            <ChildIcon
+                              className="h-4 w-4 shrink-0"
+                              aria-hidden
+                            />
                             {child.label}
                           </Link>
                         );
@@ -182,12 +216,14 @@ type MobileNavDrawerProps = {
   open: boolean;
   onClose: () => void;
   tenantName: string;
+  tenantLogoUrl: string | null;
 };
 
 export function MobileNavDrawer({
   open,
   onClose,
   tenantName,
+  tenantLogoUrl,
 }: MobileNavDrawerProps) {
   const pathname = usePathname();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
@@ -255,25 +291,29 @@ export function MobileNavDrawer({
                 className="flex items-center gap-3"
                 onClick={onClose}
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-                  <Package className="h-5 w-5" aria-hidden />
-                </span>
+                <TenantLogoBadge
+                  logoUrl={tenantLogoUrl}
+                  size="md"
+                  variant="brand"
+                />
                 <span className="min-w-0 text-left">
-                  <span className="block text-lg font-extrabold leading-tight tracking-tight text-foreground">
-                    Yard<span className="text-primary">ly</span>
+                  <span className="block truncate text-lg font-extrabold leading-tight tracking-tight text-foreground">
+                    {tenantName}
                   </span>
                   <span className="block truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    ERP для швейних брендів
+                    Yardly ERP
                   </span>
                 </span>
               </Link>
-              <p className="mt-3 truncate text-xs text-muted-foreground">{tenantName}</p>
             </div>
 
             <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
               {DASHBOARD_NAV_MAIN.map((item) => {
-                const childActive = item.children?.length ? navChildrenActive(pathname, item.children) : false;
-                const active = navItemActive(pathname, item.href) || childActive;
+                const childActive = item.children?.length
+                  ? navChildrenActive(pathname, item.children)
+                  : false;
+                const active =
+                  navItemActive(pathname, item.href) || childActive;
                 const Icon = item.icon;
                 const hasChildren = Boolean(item.children?.length);
                 return (
@@ -283,7 +323,10 @@ export function MobileNavDrawer({
                         <button
                           type="button"
                           onClick={() =>
-                            setOpenSections((prev) => ({ ...prev, [item.href]: !Boolean(prev[item.href]) }))
+                            setOpenSections((prev) => ({
+                              ...prev,
+                              [item.href]: !Boolean(prev[item.href]),
+                            }))
                           }
                           className={cn(
                             "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ease-out",
@@ -299,11 +342,15 @@ export function MobileNavDrawer({
                             )}
                             aria-hidden
                           />
-                          <span className="flex-1 truncate text-left">{item.label}</span>
+                          <span className="flex-1 truncate text-left">
+                            {item.label}
+                          </span>
                           <ChevronDown
                             className={cn(
                               "h-4 w-4 transition-transform",
-                              openSections[item.href] ? "rotate-180" : "rotate-0",
+                              openSections[item.href]
+                                ? "rotate-180"
+                                : "rotate-0",
                             )}
                             aria-hidden
                           />
@@ -311,7 +358,10 @@ export function MobileNavDrawer({
                         {openSections[item.href] ? (
                           <div className="pl-10">
                             {item.children?.map((child) => {
-                              const childIsActive = navItemActive(pathname, child.href);
+                              const childIsActive = navItemActive(
+                                pathname,
+                                child.href,
+                              );
                               const ChildIcon = child.icon;
                               return (
                                 <Link
@@ -325,7 +375,10 @@ export function MobileNavDrawer({
                                       : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
                                   )}
                                 >
-                                  <ChildIcon className="h-4 w-4 shrink-0" aria-hidden />
+                                  <ChildIcon
+                                    className="h-4 w-4 shrink-0"
+                                    aria-hidden
+                                  />
                                   {child.label}
                                 </Link>
                               );

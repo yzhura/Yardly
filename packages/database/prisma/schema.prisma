@@ -68,6 +68,8 @@ model User {
 model Tenant {
   id                     String           @id @default(cuid())
   name                   String
+  /// Company logo reference: HTTPS URL (legacy) or Storage object path (`logos/{tenantId}/...`).
+  logoUrl                String?          @map("logo_url")
   activeBusinessProfileId String?         @unique @map("active_business_profile_id")
   createdAt              DateTime         @default(now()) @map("created_at")
   updatedAt              DateTime         @updatedAt @map("updated_at")

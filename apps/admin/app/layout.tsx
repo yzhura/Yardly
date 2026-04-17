@@ -19,7 +19,7 @@ const themeInitScript = `
 
 export const metadata: Metadata = {
   title: "Yardly — Адмін-панель",
-  description: "ERP для швейних брендів",
+  description: "Автоматизація для бізнесу",
   manifest: "/site.webmanifest",
   icons: {
     icon: [

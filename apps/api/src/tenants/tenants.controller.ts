@@ -14,7 +14,9 @@ import { SupabaseAuthGuard } from "../auth/supabase-auth.guard";
 import { CurrentTenant } from "../tenancy/current-tenant.decorator";
 import { CurrentTenantGuard } from "../tenancy/current-tenant.guard";
 import { SetupTenantDto } from "./dto/setup-tenant.dto";
+import { TenantLogoSignedUploadDto } from "./dto/tenant-logo-signed-upload.dto";
 import { UpdateMemberDto } from "./dto/update-member.dto";
+import { UpdateTenantSettingsDto } from "./dto/update-tenant-settings.dto";
 import { TenantsService } from "./tenants.service";
 
 @Controller("tenants")
@@ -57,6 +59,38 @@ export class TenantsController {
     @Param("membershipId") membershipId: string,
   ) {
     return this.tenantsService.removeMember(supabaseUser, tenantId, membershipId);
+  }
+
+  @Get(":tenantId/settings")
+  @UseGuards(SupabaseAuthGuard, CurrentTenantGuard)
+  getTenantSettings(
+    @AuthUser() supabaseUser: User,
+    @Param("tenantId") _tenantId: string,
+    @CurrentTenant() tenantId: string,
+  ) {
+    return this.tenantsService.getTenantSettings(supabaseUser, tenantId);
+  }
+
+  @Patch(":tenantId/settings")
+  @UseGuards(SupabaseAuthGuard, CurrentTenantGuard)
+  updateTenantSettings(
+    @AuthUser() supabaseUser: User,
+    @Param("tenantId") _tenantId: string,
+    @CurrentTenant() tenantId: string,
+    @Body() body: UpdateTenantSettingsDto,
+  ) {
+    return this.tenantsService.updateTenantSettings(supabaseUser, tenantId, body);
+  }
+
+  @Post(":tenantId/logo/signed-upload")
+  @UseGuards(SupabaseAuthGuard, CurrentTenantGuard)
+  createTenantLogoSignedUpload(
+    @AuthUser() supabaseUser: User,
+    @Param("tenantId") _tenantId: string,
+    @CurrentTenant() tenantId: string,
+    @Body() body: TenantLogoSignedUploadDto,
+  ) {
+    return this.tenantsService.createTenantLogoSignedUpload(supabaseUser, tenantId, body);
   }
 
   @Post("setup")
