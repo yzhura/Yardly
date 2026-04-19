@@ -1,22 +1,19 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Prisma } from "@prisma/client";
-import {
-  MembershipStatus,
-  OrganizationRole,
-  type Material,
-  type MaterialCategory,
-  type Color,
-} from "@prisma/client";
+import { type Material, type MaterialCategory, type Color } from "@prisma/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { randomUUID } from "crypto";
 import { PrismaService } from "../prisma/prisma.service";
+import {
+  assertActiveTenantMembership,
+  assertOwnerOrAdminTenantMembership,
+} from "../tenancy/membership-policy";
 import { SupabaseAdminService } from "../supabase/supabase-admin.service";
 import { UsersService } from "../users/users.service";
 import { ListMaterialsQueryDto } from "./dto/list-materials-query.dto";
@@ -31,6 +28,8 @@ const MIME_TO_EXT: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
+  "image/heic": "heic",
+  "image/heif": "heif",
 };
 
 function toNonNegativeFloat(value: number): number {
@@ -46,29 +45,6 @@ export class MaterialsService {
     private readonly config: ConfigService,
     private readonly supabaseAdmin: SupabaseAdminService,
   ) {}
-
-  private async assertTenantMemberActive(appUserId: string, tenantId: string) {
-    const membership = await this.prisma.membership.findUnique({
-      where: { userId_tenantId: { userId: appUserId, tenantId } },
-    });
-
-    if (!membership) {
-      throw new ForbiddenException("not_a_member_of_tenant");
-    }
-    if (membership.status !== MembershipStatus.ACTIVE) {
-      throw new ForbiddenException("membership_deactivated");
-    }
-
-    return membership;
-  }
-
-  private async assertCanManageMaterials(appUserId: string, tenantId: string) {
-    const membership = await this.assertTenantMemberActive(appUserId, tenantId);
-
-    if (membership.role !== OrganizationRole.OWNER && membership.role !== OrganizationRole.ADMIN) {
-      throw new ForbiddenException("insufficient_role_to_manage_materials");
-    }
-  }
 
   private getStockStatus(quantityTotal: number, quantityReserved: number, minStock: number): MaterialStockStatus {
     const available = toNonNegativeFloat(quantityTotal - quantityReserved);
@@ -164,7 +140,7 @@ export class MaterialsService {
 
   async listMaterials(supabaseUser: SupabaseUser, tenantId: string, query: ListMaterialsQueryDto) {
     const user = await this.usersService.upsertFromSupabaseUser(supabaseUser);
-    await this.assertTenantMemberActive(user.id, tenantId);
+    await assertActiveTenantMembership(this.prisma, user.id, tenantId);
 
     const where: Prisma.MaterialWhereInput = {
       tenantId,
@@ -200,7 +176,12 @@ export class MaterialsService {
 
   async createMaterial(supabaseUser: SupabaseUser, tenantId: string, dto: CreateMaterialDto) {
     const user = await this.usersService.upsertFromSupabaseUser(supabaseUser);
-    await this.assertCanManageMaterials(user.id, tenantId);
+    await assertOwnerOrAdminTenantMembership(
+      this.prisma,
+      user.id,
+      tenantId,
+      "insufficient_role_to_manage_materials",
+    );
 
     const category = await this.prisma.materialCategory.findFirst({
       where: { id: dto.categoryId, tenantId, isArchived: false },
@@ -252,7 +233,12 @@ export class MaterialsService {
     dto: UpdateMaterialDto,
   ) {
     const user = await this.usersService.upsertFromSupabaseUser(supabaseUser);
-    await this.assertCanManageMaterials(user.id, tenantId);
+    await assertOwnerOrAdminTenantMembership(
+      this.prisma,
+      user.id,
+      tenantId,
+      "insufficient_role_to_manage_materials",
+    );
 
     const existing = await this.prisma.material.findFirst({
       where: { id: materialId, tenantId, isArchived: false },
@@ -308,7 +294,12 @@ export class MaterialsService {
 
   async archiveMaterial(supabaseUser: SupabaseUser, tenantId: string, materialId: string) {
     const user = await this.usersService.upsertFromSupabaseUser(supabaseUser);
-    await this.assertCanManageMaterials(user.id, tenantId);
+    await assertOwnerOrAdminTenantMembership(
+      this.prisma,
+      user.id,
+      tenantId,
+      "insufficient_role_to_manage_materials",
+    );
 
     const existing = await this.prisma.material.findFirst({
       where: { id: materialId, tenantId, isArchived: false },
@@ -327,7 +318,7 @@ export class MaterialsService {
 
   async listMaterialCategories(supabaseUser: SupabaseUser, tenantId: string) {
     const user = await this.usersService.upsertFromSupabaseUser(supabaseUser);
-    await this.assertTenantMemberActive(user.id, tenantId);
+    await assertActiveTenantMembership(this.prisma, user.id, tenantId);
 
     const categories = await this.prisma.materialCategory.findMany({
       where: { tenantId, isArchived: false },
@@ -350,7 +341,12 @@ export class MaterialsService {
     dto: CreateMaterialCategoryDto,
   ) {
     const user = await this.usersService.upsertFromSupabaseUser(supabaseUser);
-    await this.assertCanManageMaterials(user.id, tenantId);
+    await assertOwnerOrAdminTenantMembership(
+      this.prisma,
+      user.id,
+      tenantId,
+      "insufficient_role_to_manage_materials",
+    );
 
     try {
       const created = await this.prisma.materialCategory.create({
@@ -386,7 +382,12 @@ export class MaterialsService {
     dto: UpdateMaterialCategoryDto,
   ) {
     const user = await this.usersService.upsertFromSupabaseUser(supabaseUser);
-    await this.assertCanManageMaterials(user.id, tenantId);
+    await assertOwnerOrAdminTenantMembership(
+      this.prisma,
+      user.id,
+      tenantId,
+      "insufficient_role_to_manage_materials",
+    );
 
     const existing = await this.prisma.materialCategory.findFirst({
       where: { id: categoryId, tenantId, isArchived: false },
@@ -433,7 +434,12 @@ export class MaterialsService {
     categoryId: string,
   ) {
     const user = await this.usersService.upsertFromSupabaseUser(supabaseUser);
-    await this.assertCanManageMaterials(user.id, tenantId);
+    await assertOwnerOrAdminTenantMembership(
+      this.prisma,
+      user.id,
+      tenantId,
+      "insufficient_role_to_manage_materials",
+    );
 
     const existing = await this.prisma.materialCategory.findFirst({
       where: { id: categoryId, tenantId, isArchived: false },
@@ -456,7 +462,12 @@ export class MaterialsService {
     mimeType: string,
   ) {
     const user = await this.usersService.upsertFromSupabaseUser(supabaseUser);
-    await this.assertCanManageMaterials(user.id, tenantId);
+    await assertOwnerOrAdminTenantMembership(
+      this.prisma,
+      user.id,
+      tenantId,
+      "insufficient_role_to_manage_materials",
+    );
 
     const bucket = this.getMaterialsImageBucket();
     const ext = MIME_TO_EXT[mimeType];

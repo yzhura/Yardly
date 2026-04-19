@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Factory,
+  FolderOpen,
   LayoutDashboard,
   List,
   Package,
@@ -33,6 +34,7 @@ export const DASHBOARD_NAV_MAIN: DashboardNavItem[] = [
     icon: Package,
     children: [
       { href: "/products", label: "Список товарів", icon: List },
+      { href: "/catalogs", label: "Каталоги", icon: FolderOpen },
       { href: "/attributes", label: "Характеристики", icon: SlidersHorizontal },
     ],
   },

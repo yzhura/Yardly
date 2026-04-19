@@ -59,13 +59,14 @@ import {
 import { MaterialsTableHeadRow } from "./materials-table-head";
 import { MaterialsTableBodySkeleton } from "./materials-skeleton";
 import { MaterialTableColorCell } from "./material-table-color-cell";
+import {
+  MATERIAL_IMAGE_ACCEPT,
+  MATERIAL_IMAGE_MAX_BYTES,
+  resolveTenantImageUploadMime,
+} from "@/lib/product-media";
 
 const PAGE_SIZE = 4;
 const UNIT_OPTIONS = ["м", "шт", "кг", "см"] as const;
-
-const MATERIAL_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
-const MATERIAL_IMAGE_ACCEPT = MATERIAL_IMAGE_MIME_TYPES.join(",");
-const MATERIAL_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const STOCK_STATUS_UI: Record<
   MaterialStockStatus,
   { label: string; dotClass: string; pillClass: string }
@@ -459,9 +460,9 @@ export function MaterialsView({ tenantId, canManage }: MaterialsViewProps) {
   }
 
   async function uploadMaterialImage(file: File) {
-    const mimeType = file.type;
-    if (!(MATERIAL_IMAGE_MIME_TYPES as readonly string[]).includes(mimeType)) {
-      toast.error("Дозволені лише JPEG, PNG або WebP.");
+    const mimeType = resolveTenantImageUploadMime(file);
+    if (!mimeType) {
+      toast.error("Дозволені лише JPEG, PNG, WebP або HEIC/HEIF (Apple).");
       return;
     }
     if (file.size > MATERIAL_IMAGE_MAX_BYTES) {

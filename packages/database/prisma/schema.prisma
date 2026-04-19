@@ -44,6 +44,11 @@ enum AttributeScope {
   BOTH
 }
 
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+}
+
 /// Application user linked to Supabase Auth (`auth.users.id`).
 model User {
   id         String   @id @default(cuid())
@@ -84,6 +89,9 @@ model Tenant {
   colors               Color[]
   attributeDefinitions AttributeDefinition[]
   attributeValues      AttributeValue[]
+  products             Product[]
+  productVariants      ProductVariant[]
+  catalogs             Catalog[]
 
   @@map("tenants")
 }
@@ -271,5 +279,103 @@ model AttributeValue {
   @@unique([attributeDefinitionId, slug])
   @@index([tenantId])
   @@index([attributeDefinitionId])
+  productVariantLinks ProductVariantAttributeValue[]
+
   @@map("attribute_values")
+}
+
+/// Sellable product (style / parent) scoped to a tenant.
+model Product {
+  id          String        @id @default(cuid())
+  tenantId    String        @map("tenant_id")
+  name        String
+  description String?       @db.Text
+  /// Storage object paths within tenant prefix (e.g. `products/{tenantId}/…`); private bucket + signed read URLs in API.
+  imagePaths  String[]      @default([]) @map("image_paths")
+  status      ProductStatus @default(DRAFT)
+  isArchived  Boolean       @default(false) @map("is_archived")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  tenant            Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  variants          ProductVariant[]
+  catalogProducts CatalogProduct[]
+
+  @@index([tenantId])
+  @@map("products")
+}
+
+/// Curated product grouping within a tenant (line, season, channel list).
+model Catalog {
+  id          String   @id @default(cuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  slug        String   @map("slug")
+  description String?  @db.Text
+  sortIndex   Int      @default(0) @map("sort_index")
+  isArchived  Boolean  @default(false) @map("is_archived")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  catalogProducts CatalogProduct[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("catalogs")
+}
+
+/// Many-to-many: product appears in one or more catalogs (required for active merchandising).
+model CatalogProduct {
+  catalogId String @map("catalog_id")
+  productId String @map("product_id")
+  sortIndex Int    @default(0) @map("sort_index")
+
+  catalog Catalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([catalogId, productId])
+  @@index([productId])
+  @@index([catalogId])
+  @@map("catalog_products")
+}
+
+/// SKU-level sellable unit; integrations and orders should target this row.
+model ProductVariant {
+  id             String   @id @default(cuid())
+  tenantId       String   @map("tenant_id")
+  productId      String   @map("product_id")
+  sku            String
+  name           String?
+  /// Gallery paths in tenant storage (`vd/…` before save, `v/{variantId}/…` after); signed URLs from API.
+  imagePaths     String[] @default([]) @map("image_paths")
+  price          Decimal  @default(0) @db.Decimal(12, 2)
+  compareAtPrice Decimal? @map("compare_at_price") @db.Decimal(12, 2)
+  cost           Decimal? @db.Decimal(12, 2)
+  sortIndex      Int      @default(0) @map("sort_index")
+  isArchived     Boolean  @default(false) @map("is_archived")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  tenant            Tenant                         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product           Product                        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  attributeBindings ProductVariantAttributeValue[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+  @@index([productId])
+  @@map("product_variants")
+}
+
+/// Selected tenant attribute values for a variant (e.g. size + color options).
+model ProductVariantAttributeValue {
+  variantId        String @map("variant_id")
+  attributeValueId String @map("attribute_value_id")
+
+  variant        ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  attributeValue AttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+
+  @@id([variantId, attributeValueId])
+  @@index([attributeValueId])
+  @@map("product_variant_attribute_values")
 }

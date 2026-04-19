@@ -14,7 +14,7 @@ export async function GET() {
 
   const tenantId = (await cookies()).get(ACTIVE_TENANT_COOKIE)?.value ?? null;
   const tenantHeaders: Record<string, string> = { Authorization: `Bearer ${token}` };
-  if (isTenantCuid(tenantId)) {
+  if (tenantId && isTenantCuid(tenantId)) {
     tenantHeaders["X-Tenant-Id"] = tenantId;
   }
 
@@ -50,7 +50,7 @@ export async function PATCH(req: Request) {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
   };
-  if (isTenantCuid(tenantId)) {
+  if (tenantId && isTenantCuid(tenantId)) {
     tenantHeaders["X-Tenant-Id"] = tenantId;
   }
 

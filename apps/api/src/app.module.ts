@@ -13,6 +13,8 @@ import { TenantsModule } from "./tenants/tenants.module";
 import { MaterialsModule } from "./materials/materials.module";
 import { ColorsModule } from "./colors/colors.module";
 import { AttributesModule } from "./attributes/attributes.module";
+import { ProductsModule } from "./products/products.module";
+import { CatalogsModule } from "./catalogs/catalogs.module";
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { AttributesModule } from "./attributes/attributes.module";
     MaterialsModule,
     ColorsModule,
     AttributesModule,
+    ProductsModule,
+    CatalogsModule,
   ],
   controllers: [AppController],
   providers: [
